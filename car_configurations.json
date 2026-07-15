@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "market": "US",
+    "model_year": 2026,
+    "poc_note": "Tier 1 (lineup) is awareness-only: the six Ford trucks and vans in the prototype carousel, name + character, no config tree. Tier 2 (models) carries the full configurable tree and exists ONLY for the F-150 Lariat in this POC. Reveal is locked to f-150-lariat.",
+    "verified": "Colour / wheel / interior option lists sourced from the Ford F-150 Lariat build & price configurator (2026 model year). Confirm against official Ford data before production."
+  },
+
+  "lineup": [
+    { "id": "maverick",     "name": "Ford Maverick",   "segment": "Compact pickup",        "character": "The right-sized truck — city-friendly, thrifty, endlessly handy for the weekend." },
+    { "id": "ranger",       "name": "Ford Ranger",     "segment": "Midsize pickup",        "character": "The adventurer's mid-size — nimble on the trail, tough enough for real work." },
+    { "id": "f-150-lariat", "name": "Ford F-150",      "segment": "Full-size pickup",      "character": "America's truck — the all-rounder that hauls, tows, and does it in comfort." },
+    { "id": "super-duty",   "name": "Ford Super Duty", "segment": "Heavy-duty pickup",     "character": "The heavy hitter — built for the biggest trailers and the hardest jobs." },
+    { "id": "e-transit",    "name": "Ford E-Transit",  "segment": "Electric cargo van",    "character": "The all-electric workhorse — quiet, clean, and ready for the daily route." },
+    { "id": "transit",      "name": "Ford Transit",    "segment": "Full-size cargo van",   "character": "The cavernous do-anything van — the mobile workshop that swallows it all." }
+  ],
+
+  "models": {
+    "f-150-lariat": {
+      "id": "f-150-lariat",
+      "name": "Ford F-150 Lariat",
+      "segment": "Full-size pickup",
+      "powertrain": {
+        "engine": "2.7L EcoBoost V6",
+        "horsepower": 325,
+        "torque_lb_ft": 400,
+        "transmission": "10-speed automatic",
+        "drivetrain": "Rear-wheel drive (available 4x4)",
+        "epa_mpg": { "city": 19, "highway": 24, "combined": 21 }
+      },
+      "trims": [
+        { "id": "lariat", "name": "Lariat SuperCrew 5.5' Box", "starting_price_usd": 62995 }
+      ],
+      "features": [
+        { "id": "four-by-four",  "label": "Available 4x4 with electronic-locking rear axle", "benefit": "Sure-footed on gravel, snow and the job site — confidence wherever the work leads." },
+        { "id": "sync4",         "label": "SYNC 4 with 12-inch touchscreen",                "benefit": "Maps, media and voice control, right where you glance." },
+        { "id": "pro-power",     "label": "Pro Power Onboard generator",                    "benefit": "Run power tools, tailgate gear or a campsite straight from the truck." },
+        { "id": "bo-sound",      "label": "Bang & Olufsen sound system",                    "benefit": "Studio-grade audio that makes the long haul fly by." },
+        { "id": "copilot360",    "label": "Ford Co-Pilot360 driver assistance",            "benefit": "Confident lane-keeping, blind-spot coverage and pre-collision braking." },
+        { "id": "tow-haul",      "label": "Best-in-class towing and payload capability",    "benefit": "Haul the trailer, the boat or a weekend's worth of gear with room to spare." }
+      ],
+      "exterior_colors": [
+        { "id": "agate-black",     "name": "Agate Black Metallic",                 "note": "A deep, glossy black with a fine metallic sparkle." },
+        { "id": "oxford-white",    "name": "Oxford White",                         "note": "A clean, classic, work-ready white." },
+        { "id": "iconic-silver",   "name": "Iconic Silver Metallic",               "note": "A bright, modern silver that shrugs off the dust." },
+        { "id": "carbonized-gray", "name": "Carbonized Gray Metallic",             "note": "A dark, technical grey with a rugged edge." },
+        { "id": "avalanche",       "name": "Avalanche",                            "note": "A cool, light stone-grey — understated and tough." },
+        { "id": "marsh-gray",      "name": "Marsh Gray",                           "note": "A warm, muted earth-grey made for the trail." },
+        { "id": "antimatter-blue", "name": "Antimatter Blue Metallic",             "note": "A deep, confident blue with real depth." },
+        { "id": "argon-blue",      "name": "Argon Blue Metallic",                  "note": "A brighter, energetic blue with a sporting edge." },
+        { "id": "ruby-red",        "name": "Ruby Red Metallic Tinted Clearcoat",   "note": "A rich, jewel-like red under a tinted clearcoat." },
+        { "id": "star-white",      "name": "Star White Metallic Tri-Coat",         "note": "A luminous pearl white with a soft, premium shimmer." }
+      ],
+      "wheels": [
+        { "id": "18-painted-aluminum", "size_inches": 18, "finish": "Painted Aluminum", "available_trims": ["lariat"], "note": "Clean, durable everyday face — comfort-leaning ride." },
+        { "id": "18-gloss-black",      "size_inches": 18, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Blacked-out 18s for a stealthier stance." },
+        { "id": "20-chrome-pvd",       "size_inches": 20, "finish": "Chrome-Like PVD",   "available_trims": ["lariat"], "note": "Bright PVD chrome — a polished, premium look." },
+        { "id": "20-gloss-black",      "size_inches": 20, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Larger 20s in gloss black — bold and planted." },
+        { "id": "22-gloss-black",      "size_inches": 22, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "The biggest, boldest look — dark and assertive." },
+        { "id": "22-chrome",           "size_inches": 22, "finish": "Chrome",            "available_trims": ["lariat"], "note": "22-inch chrome — maximum road presence." }
+      ],
+      "interiors": [
+        { "id": "activex-slate",   "material": "ActiveX", "color": "Medium Dark Slate", "available_trims": ["lariat"], "note": "Hard-wearing ActiveX seating in a warm slate grey — easy-going and refined." },
+        { "id": "activex-black",   "material": "ActiveX", "color": "Black",             "available_trims": ["lariat"], "note": "Classic black ActiveX — clean, low-maintenance and timeless." },
+        { "id": "activex-truffle", "material": "ActiveX", "color": "Smoked Truffle",    "available_trims": ["lariat"], "note": "A rich brown ActiveX with an upscale, lived-in warmth." }
+      ]
+    }
+  }
+}

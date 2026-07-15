@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+**/.venv
+.venv
+.git
+.DS_Store
+miles_memory.json
+# preview helper + attributions aren't needed in the image (kept out to slim context)
+frontend/public/preview.html

@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local agent state
+miles_memory.json
+
+# Redundant root-level copy of the placeholder GLB (the served copy lives in frontend/public/)
+/2026_Mazda_CX-5_NonRigged.glb
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/

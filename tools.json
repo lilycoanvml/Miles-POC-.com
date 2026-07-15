@@ -1,0 +1,205 @@
+{
+  "_meta": {
+    "format": "Anthropic Messages API tool definitions (name, description, input_schema).",
+    "validation_contract": "Every handler is the source of truth. It mutates SessionState and validates args against car_configurations.json. Config tools (select_exterior_color/select_wheel/select_interior) resolve ONLY against Tier-2 models (f-150-lariat in this POC). On an invalid value, return an error string listing the valid options so the model can self-correct. select_* and display_* tools return a { state, stub } payload; `stub` is the seam the future UI renders.",
+    "enum_note": "Enums below are pre-loaded with the F-150 Lariat values to ground the model. They are NOT a substitute for handler-side validation."
+  },
+
+  "tools": [
+    {
+      "name": "save_user_insight",
+      "description": "Persist a single piece of cross-session user data. Call this the moment you learn a discrete fact: the user's name, an email, a location, a profiling answer, etc. Call AT MOST ONCE per fact per user message. Do not call for small talk or vague statements.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "full_name",
+              "email",
+              "location",
+              "height_cm",
+              "test_drive_preferences",
+              "passenger_count",
+              "driving_environment",
+              "daily_car_use",
+              "weekend_vibe",
+              "car_config",
+              "test_drive_appointment"
+            ],
+            "description": "Which insight is being saved."
+          },
+          "value": {
+            "type": "string",
+            "description": "The value to persist. For test_drive_preferences/car_config/test_drive_appointment, a short structured string is acceptable."
+          }
+        },
+        "required": ["category", "value"]
+      }
+    },
+
+    {
+      "name": "show_lineup",
+      "description": "Show the user the Ford trucks & vans lineup during the LINEUP step (after the name exchange, before lifestyle discovery). Awareness only — this does NOT select or commit to any vehicle and does NOT write to the configuration. Call once when introducing 'the lineup'. Do not hint at which vehicle fits the user; that is the Phase 2 reveal.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+
+    {
+      "name": "select_model",
+      "description": "Reveal/select a specific Ford vehicle and show the full 3D model. In this POC the reveal is LOCKED to the F-150 Lariat regardless of profiling. Call in Phase 2 at the reveal moment, after profiling is complete. Call at most once per reveal.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "maverick", "ranger", "f-150-lariat", "super-duty", "e-transit", "transit"
+            ],
+            "description": "Vehicle id from the lineup. POC: must be 'f-150-lariat'."
+          }
+        },
+        "required": ["model"]
+      }
+    },
+
+    {
+      "name": "select_exterior_color",
+      "description": "Show the selected exterior colour on the chosen vehicle. Phase 3 only, after a vehicle is selected. Call once per user colour choice. The colour MUST exist for the vehicle in the knowledge base — never invent a colour.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "enum": ["f-150-lariat"] },
+          "color": {
+            "type": "string",
+            "enum": [
+              "agate-black", "oxford-white", "iconic-silver", "carbonized-gray", "avalanche",
+              "marsh-gray", "antimatter-blue", "argon-blue", "ruby-red", "star-white"
+            ],
+            "description": "Exterior colour id available for the vehicle."
+          }
+        },
+        "required": ["model", "color"]
+      }
+    },
+
+    {
+      "name": "select_wheel",
+      "description": "Show the selected wheel option on the 3D model. Phase 3, after exterior colour is chosen. Call once per user wheel choice. The wheel MUST be a valid option for the vehicle — never suggest a size you have not verified in the knowledge base.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "enum": ["f-150-lariat"] },
+          "wheel": {
+            "type": "string",
+            "enum": ["18-painted-aluminum", "18-gloss-black", "20-chrome-pvd", "20-gloss-black", "22-gloss-black", "22-chrome"],
+            "description": "Wheel option id available for the vehicle."
+          }
+        },
+        "required": ["model", "wheel"]
+      }
+    },
+
+    {
+      "name": "select_interior",
+      "description": "Show the selected interior (material + colour). Phase 3, after the user states an interior preference. Do NOT call until the user has chosen. The interior MUST be a valid combination for the vehicle — never hallucinate materials or colours.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "enum": ["f-150-lariat"] },
+          "interior": {
+            "type": "string",
+            "enum": ["activex-slate", "activex-black", "activex-truffle"],
+            "description": "Interior id (material + colour) available for the vehicle."
+          }
+        },
+        "required": ["model", "interior"]
+      }
+    },
+
+    {
+      "name": "display_car_configuration",
+      "description": "Show the final full carousel of the fully-configured truck. Call ONLY after the user confirms they like the interior, i.e. model + exterior colour + wheel + interior are all set in SessionState. No arguments — reads the finalized configuration from state. Call once.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+
+    {
+      "name": "set_car_view",
+      "description": "Move the 3D camera to a named framing of the truck so the user can see what you're describing. Call this whenever a particular angle would help illustrate your answer: 'front' for the grille/headlights, 'rear' for taillights/the Ford badge, 'side' for the full profile, 'trunk' for the bed/cargo bed, 'wheel' for wheel close-ups, 'interior' for the dash/cabin, 'hero' for the default 3/4 reveal. Only call when a vehicle has been selected.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "type": "string",
+            "enum": ["hero", "front", "side", "rear", "wheel", "interior", "trunk"],
+            "description": "Camera framing preset ('trunk' frames the truck bed)."
+          }
+        },
+        "required": ["view"]
+      }
+    },
+
+    {
+      "name": "animate_car",
+      "description": "Drive the 3D model rig. Use when the user asks (or your description naturally calls for) doors opening/closing, the tailgate opening/closing, or the wheels spinning. 'spin_wheels' spins for ~3 seconds then stops. Only call after a vehicle is selected.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["open_doors", "close_doors", "open_trunk", "close_trunk", "spin_wheels"],
+            "description": "Which rig action to perform ('open_trunk'/'close_trunk' operate the tailgate)."
+          }
+        },
+        "required": ["action"]
+      }
+    },
+
+    {
+      "name": "find_retailer",
+      "description": "Find the nearest Ford dealer for a test drive. Call ONLY after the user has explicitly provided a city or location — never assume location. If location is already known from prior sessions, confirm it with the user before calling. Call once per provided location.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The user's city or location, exactly as they provided it."
+          }
+        },
+        "required": ["location"]
+      }
+    },
+
+    {
+      "name": "book_test_drive",
+      "description": "Confirm a test drive booking. Call ONLY after ALL details are collected: retailer, date, time, full name, email. Include WoW-moment preferences if gathered. Call once. If the response reports availability issues, propose the returned alternative slots to the user — do not re-call until they pick one.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "retailer":   { "type": "string", "description": "Retailer name/id returned by find_retailer." },
+          "date":       { "type": "string", "description": "Preferred date (ISO 8601, e.g. 2026-06-14)." },
+          "time":       { "type": "string", "description": "Preferred time (e.g. 14:30)." },
+          "full_name":  { "type": "string", "description": "User's full name." },
+          "email":      { "type": "string", "description": "User's email address." },
+          "wow_moments": {
+            "type": "object",
+            "description": "Optional personalisation collected before booking.",
+            "properties": {
+              "height_cm": { "type": "string", "description": "Height for seat adjustment." },
+              "music":     { "type": "string", "description": "Music preference." },
+              "ambience":  { "type": "string", "description": "Preferred ambience/mood lighting." }
+            }
+          }
+        },
+        "required": ["retailer", "date", "time", "full_name", "email"]
+      }
+    }
+  ]
+}

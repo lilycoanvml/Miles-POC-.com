@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Miles — F-150 preview (no-build)</title>
+<style>
+  :root { --display:"Times New Roman",Georgia,serif; --sans:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --accent:#066fef; }
+  *{box-sizing:border-box} html,body{margin:0;height:100%;font-family:var(--sans);color:#1a1a1a;overflow:hidden}
+  #app{position:relative;width:100vw;height:100vh}
+  canvas{display:block}
+  /* nav */
+  .nav{position:absolute;top:0;left:0;right:0;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:20px 32px}
+  .nav a{font-size:12px;letter-spacing:.16em;margin-right:26px;text-decoration:none;color:#1a1a1a;opacity:.9}
+  .nav .right{display:flex;gap:14px;justify-content:flex-end;align-items:center;font-size:12px;letter-spacing:.08em}
+  .nav .btn{border:1px solid #1a1a1a;border-radius:6px;padding:7px 14px;background:transparent;cursor:pointer}
+  .nav .btn.solid{background:#fff;border-color:#fff;font-weight:600}
+  .logo{font-weight:700;letter-spacing:.2em;font-style:italic;color:#066fef}
+  /* hero title */
+  .hero{position:absolute;top:15vh;left:5vw;z-index:10}
+  .eyebrow{font-size:12px;letter-spacing:.42em;color:#33363a}
+  .model{font-family:var(--display);font-size:clamp(54px,8vw,118px);line-height:.9;margin-top:6px}
+  .scroll{position:absolute;right:32px;bottom:34px;z-index:10;font-size:13px;color:#3a3a3a}
+  /* chat overlay */
+  .chat{position:absolute;left:32px;bottom:34px;z-index:15;width:min(320px,26vw);display:flex;flex-direction:column;gap:10px}
+  .b{max-width:100%;padding:11px 14px;border-radius:12px;font-size:14px;line-height:1.45;backdrop-filter:blur(8px)}
+  .b.m{background:rgba(245,245,245,.92)} .b.u{align-self:flex-start;background:rgba(120,124,130,.85);color:#fff}
+  .ask{display:flex;align-items:center;gap:10px;background:rgba(30,32,36,.82);backdrop-filter:blur(10px);border-radius:12px;padding:11px 14px}
+  .ask input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:15px}
+  .ask input::placeholder{color:rgba(255,255,255,.6)}
+  /* config panel */
+  .panel{position:absolute;top:90px;right:24px;z-index:16;width:230px;background:rgba(255,255,255,.78);backdrop-filter:blur(10px);border-radius:14px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.12)}
+  .panel h4{margin:6px 2px 8px;font-size:11px;letter-spacing:.14em;color:#6b6f74}
+  .row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:6px}
+  .sw{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #ccc;cursor:pointer}
+  .chip{font-size:11px;border:1px solid #cfd2d8;border-radius:999px;padding:5px 10px;cursor:pointer;background:#fff}
+  .chip.on,.viewbtn.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+  .viewbtn{font-size:11px;border:1px solid #cfd2d8;border-radius:8px;padding:6px 9px;cursor:pointer;background:#fff}
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;color:#6b6f74;background:radial-gradient(circle at 50% 35%,#f4f4f6,#d9dbe0)}
+  .note{position:absolute;left:32px;top:78px;z-index:16;font-size:11px;color:#8b9096}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="loading">Loading the F-150 preview (placeholder model, 64&nbsp;MB)…</div>
+  <nav class="nav">
+    <div><a href="#">VEHICLES</a><a href="#">SHOPPING TOOLS</a><a href="#">WHAT DRIVES US</a><a href="#">OWNERS</a></div>
+    <div class="logo">Ford</div>
+    <div class="right"><span>◎ 92602</span><button class="btn">View Inventory</button><button class="btn solid">Build Yours</button></div>
+  </nav>
+  <div class="hero"><div class="eyebrow">2026 FORD</div><div class="model">F-150</div></div>
+  <div class="note">Static preview · placeholder model · live chat/AI runs via the backend</div>
+
+  <div class="panel">
+    <h4>EXTERIOR</h4><div class="row" id="paints"></div>
+    <h4>WHEELS</h4><div class="row" id="wheels"></div>
+    <h4>INTERIOR</h4><div class="row" id="interiors"></div>
+    <h4>VIEW</h4><div class="row" id="views"></div>
+  </div>
+
+  <div class="chat">
+    <div class="b u">I think blue's the one for me.</div>
+    <div class="b m" id="mbubble">Here's the F-150 in Antimatter Blue Metallic. Shall we take a closer look at the wheels?</div>
+    <div class="ask"><span style="color:#cfd2d8">✦</span><input id="ask" placeholder="Ask anything (try: black, blue, chrome wheels, interior)" /></div>
+  </div>
+  <div class="scroll">Scroll to Discover</div>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.169.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+// ---- material presets (mirror frontend/src/config/materials.ts — Ford F-150 Lariat) ----
+const PAINTS = {
+  "Agate Black":{c:"#14171A",m:.7,r:.28,cc:.9,ccr:.06},
+  "Oxford White":{c:"#ECEDED",m:.2,r:.4,cc:.5,ccr:.12},
+  "Iconic Silver":{c:"#B4B8BB",m:.9,r:.38,cc:.6,ccr:.12},
+  "Carbonized Gray":{c:"#565A5E",m:.9,r:.42,cc:.55,ccr:.15},
+  "Avalanche":{c:"#9BA0A3",m:.75,r:.45,cc:.45,ccr:.18},
+  "Marsh Gray":{c:"#6E6E66",m:.7,r:.5,cc:.4,ccr:.2},
+  "Antimatter Blue":{c:"#2B3A55",m:.85,r:.34,cc:.8,ccr:.08},
+  "Argon Blue":{c:"#3F6E9A",m:.85,r:.32,cc:.8,ccr:.08},
+  "Ruby Red":{c:"#7E1420",m:.6,r:.24,cc:1,ccr:.04},
+  "Star White":{c:"#F0EFEA",m:.35,r:.3,cc:1,ccr:.05},
+};
+const WHEELS = {
+  '18" Painted':{c:"#B9BDC1",m:.9,r:.34},
+  '18" Gloss Black':{c:"#1A1C1E",m:.8,r:.22},
+  '20" Chrome PVD':{c:"#CDD0D2",m:1,r:.12},
+  '20" Gloss Black':{c:"#202225",m:.8,r:.2},
+  '22" Gloss Black':{c:"#17181A",m:.82,r:.18},
+  '22" Chrome':{c:"#D3D6D8",m:1,r:.1},
+};
+const INTERIORS = {
+  "Slate":{l:"#3A3E42",s:"#6A6E72"},
+  "Black":{l:"#191A1C",s:"#4A4B4D"},
+  "Truffle":{l:"#4A3B33",s:"#8C6F5B"},
+};
+const BODY="CarPaint";
+const WHEEL_MATS=["WheelChrome","WheelPaintBlack"];
+const LEATHER=["intLeatherDark","intLeatherLt","intLeatherPlasticBMP","intLeatherPerfLt","intLeatherSteeringWheelBump"];
+const STITCH=["intStitchesWhite","intStitchesGrey","intStitchesStWheel"];
+
+// ---- renderer / scene ----
+const app=document.getElementById("app");
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+app.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color("#e7e8ea");
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.1,5000);
+camera.position.set(5,2,6);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.enablePan=false; controls.minDistance=0.3; controls.maxDistance=50;
+controls.maxPolarAngle=Math.PI/2.02;
+addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+let presets=null, goal=null;
+function worldPos(root,name){let v=null;root.traverse(o=>{if(!v&&o.name===name){v=new THREE.Vector3();o.getWorldPosition(v)}});return v;}
+function applyPaint(root,p){root.traverse(o=>{if(o.isMesh){const a=Array.isArray(o.material)?o.material:[o.material];a.forEach((mm,i)=>{if(mm&&mm.name===BODY){let pm=mm;if(!mm.isMeshPhysicalMaterial){pm=new THREE.MeshPhysicalMaterial();pm.copy(mm);pm.name=BODY;if(Array.isArray(o.material))o.material[i]=pm;else o.material=pm;}pm.color.set(p.c);pm.metalness=p.m;pm.roughness=p.r;pm.clearcoat=p.cc;pm.clearcoatRoughness=p.ccr;pm.needsUpdate=true;}})}});}
+function applyMats(root,names,fn){const s=new Set(names);root.traverse(o=>{if(o.isMesh){const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(mm=>{if(mm&&s.has(mm.name))fn(mm)})}})}
+
+const draco=new DRACOLoader(); draco.setDecoderPath("https://unpkg.com/three@0.169.0/examples/jsm/libs/draco/gltf/");
+const gltfLoader=new GLTFLoader(); gltfLoader.setDRACOLoader(draco);
+gltfLoader.load("./2026_Mazda_CX-5_NonRigged.glb",(g)=>{
+  const root=g.scene; scene.add(root);
+  const box=new THREE.Box3().setFromObject(root), c=box.getCenter(new THREE.Vector3()), sz=box.getSize(new THREE.Vector3());
+  const md=Math.max(sz.x,sz.y,sz.z), up=new THREE.Vector3(0,1,0);
+  const hl=worldPos(root,"Headlights"); let front=hl?hl.clone().sub(c):new THREE.Vector3(0,0,1); front.y=0; if(front.lengthSq()<1e-6)front.set(0,0,1); front.normalize();
+  const right=new THREE.Vector3().crossVectors(up,front).normalize();
+  const wp=worldPos(root,"WheelFrLeft")||c.clone(), sw=worldPos(root,"SteeringWheel"), dp=worldPos(root,"Dash")||sw||c.clone();
+  let driver=(sw?sw.clone().sub(c):right.clone()); driver.sub(front.clone().multiplyScalar(driver.dot(front))); driver.y=0; if(driver.lengthSq()<1e-6)driver.copy(right); driver.normalize();
+  const iLook=dp.clone().lerp(sw||dp,0.5).add(up.clone().multiplyScalar(sz.y*.03));
+  presets={
+    hero:{p:c.clone().add(front.clone().multiplyScalar(md*1.5)).add(right.clone().multiplyScalar(md*.95)).add(up.clone().multiplyScalar(sz.y*.7)),l:c.clone().add(up.clone().multiplyScalar(sz.y*.1))},
+    wheel:{p:wp.clone().add(front.clone().multiplyScalar(md*.45)).add(right.clone().multiplyScalar(md*.3)).add(up.clone().multiplyScalar(sz.y*.15)),l:wp.clone()},
+    interior:{p:iLook.clone().add(front.clone().multiplyScalar(-md*.13)).add(driver.clone().multiplyScalar(-md*.17)).add(up.clone().multiplyScalar(sz.y*.15)),l:iLook},
+  };
+  goal=presets.hero; camera.position.copy(goal.p); controls.target.copy(goal.l);
+  setPaint("Antimatter Blue"); setWheel('20" Chrome PVD'); setInterior("Slate");
+  document.getElementById("loading").remove();
+},(e)=>{const el=document.getElementById("loading");if(el&&e.total)el.textContent=`Loading the F-150 preview… ${Math.round(e.loaded/e.total*100)}%`;},
+(err)=>{document.getElementById("loading").textContent="Failed to load GLB — serve over http:// (not file://). See console.";console.error(err);});
+
+let CUR={paint:null,wheel:null,interior:null};
+function setPaint(n){CUR.paint=n;const p=PAINTS[n];scene.traverse(o=>{});const root=scene.children.find(o=>o.type==="Group"||o.type==="Object3D"||o.isObject3D&&o.children.length);if(root)applyPaint(scene,p);mark("paints",n);}
+function setWheel(n){CUR.wheel=n;const w=WHEELS[n];applyMats(scene,WHEEL_MATS,m=>{m.color.set(w.c);m.metalness=w.m;m.roughness=w.r;m.needsUpdate=true});mark("wheels",n);}
+function setInterior(n){CUR.interior=n;const it=INTERIORS[n];applyMats(scene,LEATHER,m=>{m.color.set(it.l);m.needsUpdate=true});applyMats(scene,STITCH,m=>{m.color.set(it.s);m.needsUpdate=true});mark("interiors",n);}
+function setView(v){goal=presets&&presets[v];mark("views",v);}
+
+// ---- build control panel ----
+function mark(group,name){[...document.getElementById(group).children].forEach(el=>el.classList.toggle("on",el.dataset.name===name));}
+const pc=document.getElementById("paints");
+for(const n in PAINTS){const b=document.createElement("div");b.className="sw";b.title=n;b.dataset.name=n;b.style.background=PAINTS[n].c;b.onclick=()=>setPaint(n);pc.appendChild(b);}
+const wc=document.getElementById("wheels");
+for(const n in WHEELS){const b=document.createElement("div");b.className="chip";b.dataset.name=n;b.textContent=n;b.onclick=()=>setWheel(n);wc.appendChild(b);}
+const ic=document.getElementById("interiors");
+for(const n in INTERIORS){const b=document.createElement("div");b.className="chip";b.dataset.name=n;b.textContent=n;b.onclick=()=>setInterior(n);ic.appendChild(b);}
+const vc=document.getElementById("views");
+[["Full","hero"],["Wheel","wheel"],["Interior","interior"]].forEach(([t,v])=>{const b=document.createElement("div");b.className="viewbtn";b.dataset.name=v;b.textContent=t;b.onclick=()=>setView(v);vc.appendChild(b);});
+
+// ---- tiny scripted chat (no backend) ----
+const ask=document.getElementById("ask"), mb=document.getElementById("mbubble");
+ask.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const t=ask.value.toLowerCase();ask.value="";
+  const map={red:"Ruby Red",black:"Agate Black",blue:"Antimatter Blue",navy:"Antimatter Blue",white:"Oxford White",silver:"Iconic Silver",gray:"Carbonized Gray",grey:"Carbonized Gray"};
+  for(const k in map)if(t.includes(k)){setPaint(map[k]);setView("hero");mb.textContent=`Here's the F-150 in ${map[k]} Metallic. What do you think?`;return;}
+  if(t.includes("wheel")||t.includes("chrome")||t.includes("sport")){setWheel('22" Gloss Black');setView("wheel");mb.textContent="These 22-inch gloss-black wheels give it a bolder stance. Like them?";return;}
+  if(t.includes("interior")||t.includes("inside")){setView("interior");mb.textContent="Stepping inside — the Smoked Truffle ActiveX warms the cab. Shall I show the infotainment?";return;}
+  mb.textContent="In the full app I'd answer that live — this static preview just shows the visuals.";});
+
+(function loop(){requestAnimationFrame(loop);if(goal){camera.position.lerp(goal.p,0.06);controls.target.lerp(goal.l,0.06);}controls.update();renderer.render(scene,camera);})();
+</script>
+</body>
+</html>
