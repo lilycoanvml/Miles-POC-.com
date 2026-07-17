@@ -31,7 +31,7 @@ from urllib.parse import parse_qs
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .agent import Miles
@@ -54,6 +54,17 @@ app.add_middleware(
 MILES_PASSCODE = os.environ.get("MILES_PASSCODE")
 COOKIE_NAME = "miles_auth"
 COOKIE_MAX_AGE = 8 * 60 * 60  # 8 hours
+
+# Built frontend directory (single-service deploy). Referenced by both the gate (which streams
+# large models from it) and the static mount at the bottom of the file.
+_STATIC_DIR = os.environ.get("MILES_STATIC_DIR")
+_CHUNK = 1024 * 1024  # 1 MiB
+
+
+def _iterfile(path: Path):
+    with path.open("rb") as f:
+        while chunk := f.read(_CHUNK):
+            yield chunk
 
 
 def _expected_token() -> str:
@@ -129,9 +140,16 @@ async def login_submit(request: Request):
 @app.middleware("http")
 async def passcode_gate(request: Request, call_next):
     path = request.url.path
-    if not MILES_PASSCODE or path in ("/login", "/healthz") or _is_authed(request.cookies):
-        return await call_next(request)
-    return RedirectResponse("/login", status_code=302)
+    gated = bool(MILES_PASSCODE) and path not in ("/login", "/healthz")
+    if gated and not _is_authed(request.cookies):
+        return RedirectResponse("/login", status_code=302)
+    # Stream large .glb models with chunked transfer — Cloud Run rejects buffered HTTP/1
+    # responses over 32 MiB, and the vehicle model is larger. (Served only past the gate.)
+    if request.method == "GET" and path.endswith(".glb") and _STATIC_DIR:
+        fp = Path(_STATIC_DIR) / path.lstrip("/")
+        if fp.is_file():
+            return StreamingResponse(_iterfile(fp), media_type="model/gltf-binary")
+    return await call_next(request)
 
 
 # --------------------------------------------------------------------------- chat pumps
@@ -211,6 +229,5 @@ async def chat(ws: WebSocket) -> None:
 # Serve the built frontend for the single-service deploy (the container sets MILES_STATIC_DIR to
 # the Vite `dist/` copied in by the Dockerfile). Mounted LAST so the routes above take precedence;
 # html=True serves index.html at "/" and the hashed assets/GLB beneath it.
-_static_dir = os.environ.get("MILES_STATIC_DIR")
-if _static_dir and Path(_static_dir).is_dir():
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+if _STATIC_DIR and Path(_STATIC_DIR).is_dir():
+    app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")
