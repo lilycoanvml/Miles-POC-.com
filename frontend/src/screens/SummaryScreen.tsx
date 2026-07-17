@@ -1,44 +1,40 @@
-import type { StageState } from "../types";
-import {
-  buildSummary,
-  GALLERY,
-  OFFERS,
-  PRICING,
-  STANDARD_FEATURES,
-} from "../config/spec";
+import type { BookingDetails, StageState } from "../types";
+import { buildSummary, OFFERS, PRICING, STANDARD_FEATURES } from "../config/spec";
+import { ConfiguratorStage } from "../three/ConfiguratorStage";
 
 /**
- * Final reveal — the "build summary" page (matches the reference): a scrollable gallery on the
- * left and a YOUR BUILD spec panel on the right. Gallery tiles are placeholders until real
- * renders / canvas snapshots are wired in; the spec fields are driven by the live config.
+ * Final reveal — the "build summary" page: the configured 3D truck on the left, and the YOUR BUILD
+ * spec panel on the right. Details the user shared during booking (name, location, appointment)
+ * appear as blocks under the vehicle title as they're collected.
  */
-export function SummaryScreen({ stage }: { stage: StageState }) {
+export function SummaryScreen({ stage, details }: { stage: StageState; details?: BookingDetails }) {
   const b = buildSummary(stage);
+  const blocks = detailBlocks(details);
 
   return (
     <div className="summary">
       <div className="summary-inner">
-        {/* Left: gallery */}
-        <section className="summary-gallery">
-          <div className="eyebrow">BUILD YOUR</div>
-          <h1 className="display summary-title">F-150</h1>
-          <div className="gallery-grid">
-            {GALLERY.map((g) => (
-              <div key={g.src} className={`gallery-tile ${g.wide ? "gallery-wide" : ""}`}>
-                <img
-                  src={g.src}
-                  alt={g.label}
-                  loading="lazy"
-                  onError={(e) => { (e.currentTarget.style.display = "none"); }}
-                />
-                <span className="gallery-label">{g.label}</span>
-              </div>
-            ))}
-          </div>
+        {/* Left: the configured 3D vehicle */}
+        <section className="summary-viewer">
+          <ConfiguratorStage stage={stage} view="hero" />
         </section>
 
         {/* Right: YOUR BUILD */}
         <aside className="summary-build">
+          <div className="eyebrow">2026 FORD</div>
+          <h1 className="display summary-title">F-150</h1>
+
+          {blocks.length > 0 && (
+            <div className="detail-blocks">
+              {blocks.map((d) => (
+                <div key={d.k} className="detail-block">
+                  <span className="detail-k">{d.k}</span>
+                  <span className="detail-v">{d.v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="build-section">
             <h2>YOUR BUILD</h2>
             <div className="build-model">{b.model}</div>
@@ -90,6 +86,19 @@ export function SummaryScreen({ stage }: { stage: StageState }) {
       </div>
     </div>
   );
+}
+
+/** Ordered, present-only user details to render as blocks under the title. */
+function detailBlocks(d?: BookingDetails): { k: string; v: string }[] {
+  if (!d) return [];
+  const out: { k: string; v: string }[] = [];
+  if (d.name) out.push({ k: "Name", v: d.name });
+  if (d.location) out.push({ k: "Location", v: d.location });
+  if (d.retailer) out.push({ k: "Dealer", v: d.retailer });
+  if (d.date) out.push({ k: "Date", v: d.date });
+  if (d.time) out.push({ k: "Time", v: d.time });
+  if (d.email) out.push({ k: "Email", v: d.email });
+  return out;
 }
 
 function Row({ k, v, note }: { k: string; v: string; note?: string }) {

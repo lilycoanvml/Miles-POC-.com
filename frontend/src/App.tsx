@@ -8,7 +8,7 @@ import { SummaryScreen } from "./screens/SummaryScreen";
 import { InfotainmentOverlay } from "./components/InfotainmentOverlay";
 import type { View } from "./three/cameraPresets";
 import { DEFAULT_RIG } from "./three/rig";
-import type { ServerEvent, StageState } from "./types";
+import type { BookingDetails, ServerEvent, StageState } from "./types";
 import { AudioSink, MicStream, int16ToBase64 } from "./voice";
 
 // Same-origin by default (single-service Cloud Run). In dev (Vite on :5173), talk
@@ -37,6 +37,8 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [lineupShown, setLineupShown] = useState(false);
   const [lineupFocus, setLineupFocus] = useState<string | null>(null);
+  const [lineupSpin, setLineupSpin] = useState(false);
+  const [details, setDetails] = useState<BookingDetails>({});
   const [booked, setBooked] = useState(false);
   const [infotainmentOpen, setInfotainmentOpen] = useState(false);
   const [micActive, setMicActive] = useState(false);
@@ -62,8 +64,31 @@ export default function App() {
       if (ev.tool === "focus_lineup_model") {
         const m = ev.payload?.model as string | undefined;
         if (m) setLineupFocus(m);
+        setLineupSpin(false); // focusing a vehicle stops the auto-spin
       }
-      if (ev.tool === "book_test_drive" && ev.ok) setBooked(true);
+      if (ev.tool === "spin_lineup") { setLineupSpin(true); setLineupFocus(null); }
+
+      // Collect user-provided details as they arrive → shown as blocks on the booking screen.
+      if (ev.tool === "save_user_insight" && ev.ok) {
+        const cat = ev.payload?.category as string | undefined;
+        const val = ev.payload?.value as string | undefined;
+        if (val) {
+          const key = ({ full_name: "name", email: "email", location: "location", height_cm: "height" } as Record<string, keyof BookingDetails>)[cat ?? ""];
+          if (key) setDetails((d) => ({ ...d, [key]: val }));
+        }
+      } else if (ev.tool === "find_retailer" && ev.ok) {
+        setDetails((d) => ({ ...d, location: ev.payload?.location ?? d.location, retailer: ev.payload?.retailer ?? d.retailer }));
+      } else if (ev.tool === "book_test_drive" && ev.ok) {
+        setBooked(true);
+        setDetails((d) => ({
+          ...d,
+          name: ev.payload?.full_name ?? d.name,
+          email: ev.payload?.email ?? d.email,
+          retailer: ev.payload?.retailer ?? d.retailer,
+          date: ev.payload?.date ?? d.date,
+          time: ev.payload?.time ?? d.time,
+        }));
+      }
 
       if (ev.tool === "set_car_view") {
         const v = ev.payload?.view as View | undefined;
@@ -166,12 +191,12 @@ export default function App() {
 
       {screen === "greeting" && <GreetingScreen onStart={start} />}
       {screen === "reveal" && (
-        <RevealScreen speaking={speaking} revealStarted={lineupShown} focusedId={lineupFocus} />
+        <RevealScreen speaking={speaking} revealStarted={lineupShown} focusedId={lineupFocus} spinning={lineupSpin} />
       )}
       {screen === "configurator" && (
         <ConfiguratorScreen stage={stage} view={view} onOpenInfotainment={() => setInfotainmentOpen(true)} />
       )}
-      {screen === "summary" && <SummaryScreen stage={stage} />}
+      {screen === "summary" && <SummaryScreen stage={stage} details={details} />}
 
       <InfotainmentOverlay open={infotainmentOpen} onClose={() => setInfotainmentOpen(false)} />
 

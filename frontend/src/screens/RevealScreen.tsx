@@ -15,18 +15,26 @@ import { HERO_ID, LINEUP, lineupImage, lineupIndex } from "../config/lineup";
 
 type Phase = "listening" | "morphing" | "carousel";
 
+const LEN = LINEUP.length;
 const HERO_INDEX = Math.max(0, lineupIndex(HERO_ID));
 const MORPH_MS = 3200; // keep in sync with the morph keyframe durations in styles.css
+const SPIN_MS = 1500; // auto-advance interval while spinning
+// The carousel renders three concatenated copies of the lineup so it can loop endlessly; the
+// centre always lives in the middle copy, and we silently snap back after crossing a boundary.
+const COPIES = 3;
+const START = LEN + HERO_INDEX; // absolute index of the F-150 in the middle copy
 
 interface Props {
   speaking: boolean;
   revealStarted: boolean; // lineup has been shown → play the morph
   focusedId: string | null; // vehicle Miles asked to centre (Tier-1 id)
+  spinning: boolean; // Miles asked to auto-spin through the lineup
 }
 
-export function RevealScreen({ speaking, revealStarted, focusedId }: Props) {
+export function RevealScreen({ speaking, revealStarted, focusedId, spinning }: Props) {
   const [phase, setPhase] = useState<Phase>(revealStarted ? "carousel" : "listening");
-  const [idx, setIdx] = useState(HERO_INDEX);
+  const [index, setIndex] = useState(START); // absolute index into the tripled item list
+  const [animate, setAnimate] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const speakingRef = useRef(speaking);
   speakingRef.current = speaking;
@@ -150,14 +158,37 @@ export function RevealScreen({ speaking, revealStarted, focusedId }: Props) {
     return () => window.clearTimeout(t);
   }, [phase]);
 
-  // Voice-driven scroll ("show me the Ranger").
+  // Voice-driven scroll to a specific vehicle ("show me the Ranger") — slide forward to it.
   useEffect(() => {
-    const i = lineupIndex(focusedId);
-    if (i >= 0) setIdx(i);
+    const m = lineupIndex(focusedId);
+    if (m < 0) return;
+    setAnimate(true);
+    setIndex((i) => { let j = i; while (j % LEN !== m) j++; return j; });
   }, [focusedId]);
 
+  // Endless auto-spin while Miles is showing off the range.
+  useEffect(() => {
+    if (phase !== "carousel" || !spinning) return;
+    const id = window.setInterval(() => { setAnimate(true); setIndex((i) => i + 1); }, SPIN_MS);
+    return () => window.clearInterval(id);
+  }, [phase, spinning]);
+
+  // After a slide crosses out of the middle copy, silently snap back to the equivalent position.
+  useEffect(() => {
+    if (animate) return;
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
+    return () => cancelAnimationFrame(r);
+  }, [animate]);
+
+  const onTrackTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.propertyName !== "transform" || e.target !== e.currentTarget) return;
+    if (index >= 2 * LEN) { setAnimate(false); setIndex(index - LEN); }
+    else if (index < LEN) { setAnimate(false); setIndex(index + LEN); }
+  };
+
   const showCarousel = phase === "morphing" || phase === "carousel";
-  const centerItem = LINEUP[idx] ?? LINEUP[HERO_INDEX];
+  const centerItem = LINEUP[index % LEN] ?? LINEUP[HERO_INDEX];
+  const cells = Array.from({ length: COPIES * LEN }, (_, abs) => ({ abs, item: LINEUP[abs % LEN] }));
 
   return (
     <div className="reveal" data-phase={phase}>
@@ -188,51 +219,27 @@ export function RevealScreen({ speaking, revealStarted, focusedId }: Props) {
       {showCarousel && (
         <div className="carousel">
           <div className="carousel-name">{centerItem.label}</div>
-          <div className="carousel-track" style={{ ["--idx" as string]: String(idx) } as React.CSSProperties}>
-            {LINEUP.map((it, i) => (
-              <div key={it.id} className={`carousel-item ${i === idx ? "is-center" : ""}`}>
-                <button className="carousel-hit" type="button" onClick={() => setIdx(i)} aria-label={it.label}>
-                  <img className="car-img solid" src={lineupImage(it.id)} alt={it.label} draggable={false} />
-                  {i === HERO_INDEX && phase === "morphing" && (
-                    <>
-                      <img className="car-img m-ghost" src={heroImg} alt="" aria-hidden="true" draggable={false} />
-                      <div
-                        className="car-img m-mesh"
-                        style={{
-                          WebkitMaskImage: `url(${heroImg})`,
-                          maskImage: `url(${heroImg})`,
-                        }}
-                      />
-                      <img className="car-img m-outline" src={heroImg} alt="" aria-hidden="true" draggable={false} />
-                    </>
-                  )}
-                </button>
+          <div
+            className={`carousel-track ${animate ? "" : "no-anim"}`}
+            style={{ ["--idx" as string]: String(index) } as React.CSSProperties}
+            onTransitionEnd={onTrackTransitionEnd}
+          >
+            {cells.map(({ abs, item }) => (
+              <div key={abs} className={`carousel-item ${abs === index ? "is-center" : ""}`}>
+                <img className="car-img solid" src={lineupImage(item.id)} alt={item.label} draggable={false} />
+                {abs === index && phase === "morphing" && (
+                  <>
+                    <img className="car-img m-ghost" src={heroImg} alt="" aria-hidden="true" draggable={false} />
+                    <div
+                      className="car-img m-mesh"
+                      style={{ WebkitMaskImage: `url(${heroImg})`, maskImage: `url(${heroImg})` }}
+                    />
+                    <img className="car-img m-outline" src={heroImg} alt="" aria-hidden="true" draggable={false} />
+                  </>
+                )}
               </div>
             ))}
           </div>
-
-          {phase === "carousel" && (
-            <>
-              <button
-                className="carousel-arrow left"
-                type="button"
-                onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                disabled={idx === 0}
-                aria-label="Previous vehicle"
-              >
-                ‹
-              </button>
-              <button
-                className="carousel-arrow right"
-                type="button"
-                onClick={() => setIdx((i) => Math.min(LINEUP.length - 1, i + 1))}
-                disabled={idx === LINEUP.length - 1}
-                aria-label="Next vehicle"
-              >
-                ›
-              </button>
-            </>
-          )}
         </div>
       )}
     </div>

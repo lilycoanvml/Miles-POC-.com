@@ -33,8 +33,8 @@ def _ok(payload: dict) -> tuple[str, bool]:
 
 def gate(name: str, state: SessionState) -> str | None:
     """Return an error message if the tool isn't legal yet, else None."""
-    if name == "focus_lineup_model" and not state.lineup_shown:
-        return "Introduce the lineup with show_lineup before focusing a specific vehicle."
+    if name in ("focus_lineup_model", "spin_lineup") and not state.lineup_shown:
+        return "Introduce the lineup with show_lineup before scrolling or spinning it."
     if name in ("select_exterior_color", "select_wheel", "select_interior") and not state.config.get("model"):
         return "No model selected yet — reveal the model first before configuring."
     if name == "select_wheel" and not state.config.get("exterior_color"):
@@ -61,7 +61,8 @@ def h_save_user_insight(state, mem, inp):
         state.full_name = val
     elif cat in ("passenger_count", "driving_environment", "daily_car_use", "weekend_vibe"):
         state.profile[cat] = val
-    return _ok({"saved": True, "category": cat})
+    # `value` is echoed so the UI can render collected details (name, location, etc.) as blocks.
+    return _ok({"saved": True, "category": cat, "value": val})
 
 
 def h_show_lineup(state, mem, inp):
@@ -76,6 +77,12 @@ def h_focus_lineup_model(state, mem, inp):
         return _err(f"Unknown lineup vehicle '{model_id}'. Options: {ids}")
     state.lineup_focus = model_id
     return _ok({"stub": "lineup_focus", "model": model_id})
+
+
+def h_spin_lineup(state, mem, inp):
+    # Start the endless auto-scroll showcase; the UI loops through the lineup until Miles
+    # focuses a specific vehicle (focus_lineup_model) or selects one (select_model).
+    return _ok({"stub": "lineup_spin"})
 
 
 def h_select_model(state, mem, inp):
@@ -140,7 +147,7 @@ def h_find_retailer(state, mem, inp):
     result = retailer.find_nearest(location)
     state.retailer = result["retailer"]
     memory.set_insight(mem, "location", location)
-    return _ok(result)
+    return _ok({**result, "location": location})
 
 
 def h_book_test_drive(state, mem, inp):
@@ -154,7 +161,10 @@ def h_book_test_drive(state, mem, inp):
     memory.set_insight(mem, "full_name", inp["full_name"])
     memory.set_insight(mem, "email", inp["email"])
     # Faked booking: always "available" in the POC; no real scheduling occurs.
-    return _ok({"confirmed": True, "mock": True, **appt})
+    return _ok({
+        "confirmed": True, "mock": True, **appt,
+        "full_name": inp["full_name"], "email": inp["email"],
+    })
 
 
 def h_set_car_view(state, mem, inp):
@@ -169,6 +179,7 @@ HANDLERS = {
     "save_user_insight": h_save_user_insight,
     "show_lineup": h_show_lineup,
     "focus_lineup_model": h_focus_lineup_model,
+    "spin_lineup": h_spin_lineup,
     "select_model": h_select_model,
     "select_exterior_color": h_select_exterior_color,
     "select_wheel": h_select_wheel,

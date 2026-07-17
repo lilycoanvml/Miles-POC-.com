@@ -65,6 +65,16 @@
     },
 
     {
+      "name": "spin_lineup",
+      "description": "Spin the lineup carousel — it scrolls automatically through the Ford trucks & vans in an endless loop so the user can watch the range go by. Call when you offer to show the user the rest of the lineup / the other options. Awareness only — it does NOT select a vehicle. The spin continues until you call focus_lineup_model to settle on one, or select_model to enter the build. Requires show_lineup first.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+
+    {
       "name": "select_model",
       "description": "Reveal/select a specific Ford vehicle and show the full 3D model. In this POC the reveal is LOCKED to the F-150 Lariat regardless of profiling. Call in Phase 2 at the reveal moment, after profiling is complete. Call at most once per reveal.",
       "input_schema": {

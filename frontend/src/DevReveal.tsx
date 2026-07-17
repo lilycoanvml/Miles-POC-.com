@@ -1,7 +1,24 @@
 import { useEffect, useState } from "react";
 import { NavBar } from "./components/NavBar";
 import { RevealScreen } from "./screens/RevealScreen";
+import { SummaryScreen } from "./screens/SummaryScreen";
 import { HERO_ID, LINEUP, lineupImage } from "./config/lineup";
+import { DEFAULT_RIG } from "./three/rig";
+
+/** Static preview (`?demo=reveal&view=summary`) of the summary screen with a mock build + details. */
+function SummaryPreview() {
+  const stage = {
+    model: "f-150-lariat", exteriorColor: "antimatter-blue", wheel: "20-gloss-black",
+    interior: "activex-black", finalized: true, rig: DEFAULT_RIG,
+  };
+  const details = { name: "Jordan Lee", location: "Austin, TX", retailer: "Ford Austin Central", date: "2026-08-14", time: "14:30", email: "jordan@example.com" };
+  return (
+    <div className="app">
+      <NavBar theme="light" />
+      <SummaryScreen stage={stage} details={details} />
+    </div>
+  );
+}
 
 /** Static preview (`?demo=reveal&layers=1`) of the individual morph layers at full opacity. */
 function LayerPreview() {
@@ -39,6 +56,7 @@ export function DevReveal() {
   const params = new URLSearchParams(location.search);
   const [revealStarted, setRevealStarted] = useState(params.get("state") === "carousel");
   const [focusedId, setFocusedId] = useState<string | null>(params.get("focus"));
+  const [spinning, setSpinning] = useState(params.get("spin") === "1");
   const [speaking, setSpeaking] = useState(true);
   const showLayers = params.get("layers") === "1";
 
@@ -48,16 +66,26 @@ export function DevReveal() {
     return () => window.clearInterval(t);
   }, []);
 
+  // auto-trigger the morph shortly after mount (for headless capture of the morph frames)
+  useEffect(() => {
+    if (params.get("automorph") !== "1") return;
+    const t = window.setTimeout(() => setRevealStarted(true), 60);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (showLayers) return <LayerPreview />;
+  if (params.get("view") === "summary") return <SummaryPreview />;
 
   return (
     <div className="app">
       <NavBar theme="light" />
-      <RevealScreen speaking={speaking} revealStarted={revealStarted} focusedId={focusedId} />
+      <RevealScreen speaking={speaking} revealStarted={revealStarted} focusedId={focusedId} spinning={spinning} />
       <div style={{ position: "absolute", left: 24, bottom: 24, zIndex: 50, display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 520 }}>
         <button onClick={() => setRevealStarted(true)}>show_lineup (morph)</button>
+        <button onClick={() => setSpinning((s) => !s)}>{spinning ? "stop spin" : "spin_lineup"}</button>
         {LINEUP.map((it) => (
-          <button key={it.id} onClick={() => setFocusedId(it.id)}>{it.label}</button>
+          <button key={it.id} onClick={() => { setSpinning(false); setFocusedId(it.id); }}>{it.label}</button>
         ))}
       </div>
     </div>

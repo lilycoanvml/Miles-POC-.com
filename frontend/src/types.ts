@@ -27,6 +27,17 @@ export type ServerEvent =
   | ToolEvent | AudioEvent | TranscriptEvent
   | InterruptedEvent | TurnCompleteEvent | ErrorEvent | AssistantEvent;
 
+// User details collected across the conversation, shown as blocks on the booking/summary screen.
+export interface BookingDetails {
+  name?: string;
+  email?: string;
+  location?: string;
+  retailer?: string;
+  date?: string;
+  time?: string;
+  height?: string;
+}
+
 import type { RigState } from "./three/rig";
 
 export interface StageState {
