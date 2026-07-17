@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavBar } from "./components/NavBar";
-import { ChatOverlay } from "./components/ChatOverlay";
-import { Orb } from "./components/Orb";
+import { VoiceControl } from "./components/VoiceControl";
 import { GreetingScreen } from "./screens/GreetingScreen";
-import { LineupScreen } from "./screens/LineupScreen";
+import { RevealScreen } from "./screens/RevealScreen";
 import { ConfiguratorScreen } from "./screens/ConfiguratorScreen";
 import { SummaryScreen } from "./screens/SummaryScreen";
 import { InfotainmentOverlay } from "./components/InfotainmentOverlay";
 import type { View } from "./three/cameraPresets";
 import { DEFAULT_RIG } from "./three/rig";
-import type { ChatMessage, ServerEvent, StageState } from "./types";
+import type { ServerEvent, StageState } from "./types";
 import { AudioSink, MicStream, int16ToBase64 } from "./voice";
 
 // Same-origin by default (single-service Cloud Run). In dev (Vite on :5173), talk
@@ -20,8 +19,8 @@ const WS_URL =
     ? `ws://${location.hostname}:8001/ws`
     : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
 
-// Screen router: landing -> voice orb -> model carousel -> 3D configurator -> build summary.
-type Screen = "greeting" | "orb" | "lineup" | "configurator" | "summary";
+// Screen router: landing -> voice orb/reveal -> model carousel -> 3D configurator -> build summary.
+type Screen = "greeting" | "reveal" | "configurator" | "summary";
 
 const TOOL_VIEW: Record<string, View> = {
   select_model: "hero",
@@ -31,13 +30,13 @@ const TOOL_VIEW: Record<string, View> = {
 };
 
 export default function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [stage, setStage] = useState<StageState>({ finalized: false, rig: DEFAULT_RIG });
   const [, setPhase] = useState("greeting");
   const [view, setView] = useState<View>("hero");
   const [connected, setConnected] = useState(false);
   const [started, setStarted] = useState(false);
   const [lineupShown, setLineupShown] = useState(false);
+  const [lineupFocus, setLineupFocus] = useState<string | null>(null);
   const [booked, setBooked] = useState(false);
   const [infotainmentOpen, setInfotainmentOpen] = useState(false);
   const [micActive, setMicActive] = useState(false);
@@ -48,32 +47,22 @@ export default function App() {
   const micRef = useRef<MicStream | null>(null);
   const speakingTimer = useRef<number | null>(null);
 
-  const appendTranscript = useCallback((role: "user" | "miles", text: string, final: boolean) => {
-    setMessages((m) => {
-      const last = m[m.length - 1];
-      if (last && last.role === role && last.partial) {
-        const merged: ChatMessage = { role, text: last.text + text, partial: !final };
-        return [...m.slice(0, -1), merged];
-      }
-      return [...m, { role, text, partial: !final }];
-    });
-  }, []);
-
   const handleEvent = useCallback((ev: ServerEvent) => {
     if (ev.type === "audio") {
       sinkRef.current?.pushBase64Pcm16(ev.data);
       setSpeaking(true);
       if (speakingTimer.current) window.clearTimeout(speakingTimer.current);
       speakingTimer.current = window.setTimeout(() => setSpeaking(false), 600);
-    } else if (ev.type === "transcript") {
-      appendTranscript(ev.role, ev.text, !!ev.final);
     } else if (ev.type === "assistant") {
-      setMessages((m) => [...m, { role: "miles", text: ev.text }]);
       setPhase(ev.phase);
     } else if (ev.type === "tool") {
       setPhase(ev.phase);
       // Flow milestones that drive the screen router.
       if (ev.tool === "show_lineup") setLineupShown(true);
+      if (ev.tool === "focus_lineup_model") {
+        const m = ev.payload?.model as string | undefined;
+        if (m) setLineupFocus(m);
+      }
       if (ev.tool === "book_test_drive" && ev.ok) setBooked(true);
 
       if (ev.tool === "set_car_view") {
@@ -114,11 +103,10 @@ export default function App() {
     } else if (ev.type === "turn_complete") {
       setSpeaking(false);
       setPhase(ev.phase);
-      setMessages((m) => m.map((b) => (b.partial ? { ...b, partial: false } : b)));
     } else if (ev.type === "error") {
-      setMessages((m) => [...m, { role: "system", text: `⚠ ${ev.message}` }]);
+      console.error("[miles]", ev.message);
     }
-  }, [appendTranscript]);
+  }, []);
 
   const start = useCallback(async () => {
     if (started) return;
@@ -134,18 +122,6 @@ export default function App() {
       ws.onmessage = (e) => handleEvent(JSON.parse(e.data) as ServerEvent);
     });
   }, [handleEvent, started]);
-
-  const sendText = useCallback((text: string) => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    setMessages((m) => [...m, { role: "user", text }]);
-    ws.send(JSON.stringify({ type: "text", text }));
-  }, []);
-
-  const pickModel = useCallback(async (label: string) => {
-    if (!started) await start();
-    sendText(`I'd like to explore the ${label}.`);
-  }, [start, started, sendText]);
 
   const startMic = useCallback(async () => {
     const mic = new MicStream();
@@ -179,8 +155,7 @@ export default function App() {
     !started ? "greeting"
     : (stage.finalized || booked) ? "summary"
     : stage.model ? "configurator"
-    : lineupShown ? "lineup"
-    : "orb";
+    : "reveal";
 
   // Dark chrome over the cinematic landing; light chrome over the bright stages.
   const navTheme = screen === "greeting" ? "dark" : "light";
@@ -190,8 +165,9 @@ export default function App() {
       <NavBar theme={navTheme} />
 
       {screen === "greeting" && <GreetingScreen onStart={start} />}
-      {screen === "orb" && <Orb speaking={speaking} />}
-      {screen === "lineup" && <LineupScreen onPick={pickModel} />}
+      {screen === "reveal" && (
+        <RevealScreen speaking={speaking} revealStarted={lineupShown} focusedId={lineupFocus} />
+      )}
       {screen === "configurator" && (
         <ConfiguratorScreen stage={stage} view={view} onOpenInfotainment={() => setInfotainmentOpen(true)} />
       )}
@@ -200,14 +176,12 @@ export default function App() {
       <InfotainmentOverlay open={infotainmentOpen} onClose={() => setInfotainmentOpen(false)} />
 
       {started && screen !== "summary" && (
-        <ChatOverlay
-          messages={messages}
+        <VoiceControl
           connected={connected}
           started={started}
           micActive={micActive}
           speaking={speaking}
           onStart={start}
-          onSend={sendText}
           onToggleMic={toggleMic}
         />
       )}

@@ -49,6 +49,22 @@
     },
 
     {
+      "name": "focus_lineup_model",
+      "description": "Scroll the lineup carousel to bring a specific Ford vehicle to centre while the user is browsing. Awareness only — this does NOT select or commit to a vehicle and does NOT write to the configuration. Call whenever the user asks to see or hear about a specific truck/van in the lineup (e.g. 'show me the Ranger'). Requires show_lineup to have been called first.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": ["maverick", "ranger", "f-150-lariat", "super-duty", "e-transit", "transit"],
+            "description": "Lineup vehicle id to bring to the centre of the carousel."
+          }
+        },
+        "required": ["model"]
+      }
+    },
+
+    {
       "name": "select_model",
       "description": "Reveal/select a specific Ford vehicle and show the full 3D model. In this POC the reveal is LOCKED to the F-150 Lariat regardless of profiling. Call in Phase 2 at the reveal moment, after profiling is complete. Call at most once per reveal.",
       "input_schema": {

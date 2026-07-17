@@ -27,13 +27,6 @@ export type ServerEvent =
   | ToolEvent | AudioEvent | TranscriptEvent
   | InterruptedEvent | TurnCompleteEvent | ErrorEvent | AssistantEvent;
 
-export type Role = "user" | "miles" | "system";
-export interface ChatMessage {
-  role: Role;
-  text: string;
-  partial?: boolean;
-}
-
 import type { RigState } from "./three/rig";
 
 export interface StageState {

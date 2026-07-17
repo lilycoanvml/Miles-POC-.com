@@ -20,6 +20,7 @@ class SessionState:
     full_name: str | None = None
     profile: dict = field(default_factory=dict)          # profiling fields
     lineup_shown: bool = False
+    lineup_focus: str | None = None                      # vehicle centred in the browse carousel
     config: dict = field(default_factory=dict)           # model / exterior_color / wheel / interior
     config_finalized: bool = False                       # display_car_configuration called
     profiling_declined: bool = False                     # user opted out of discovery

@@ -33,6 +33,8 @@ def _ok(payload: dict) -> tuple[str, bool]:
 
 def gate(name: str, state: SessionState) -> str | None:
     """Return an error message if the tool isn't legal yet, else None."""
+    if name == "focus_lineup_model" and not state.lineup_shown:
+        return "Introduce the lineup with show_lineup before focusing a specific vehicle."
     if name in ("select_exterior_color", "select_wheel", "select_interior") and not state.config.get("model"):
         return "No model selected yet — reveal the model first before configuring."
     if name == "select_wheel" and not state.config.get("exterior_color"):
@@ -65,6 +67,15 @@ def h_save_user_insight(state, mem, inp):
 def h_show_lineup(state, mem, inp):
     state.lineup_shown = True
     return _ok({"stub": "lineup_carousel", "models": kb.lineup()})
+
+
+def h_focus_lineup_model(state, mem, inp):
+    model_id = inp["model"]
+    ids = [m["id"] for m in kb.lineup()]
+    if model_id not in ids:
+        return _err(f"Unknown lineup vehicle '{model_id}'. Options: {ids}")
+    state.lineup_focus = model_id
+    return _ok({"stub": "lineup_focus", "model": model_id})
 
 
 def h_select_model(state, mem, inp):
@@ -157,6 +168,7 @@ def h_animate_car(state, mem, inp):
 HANDLERS = {
     "save_user_insight": h_save_user_insight,
     "show_lineup": h_show_lineup,
+    "focus_lineup_model": h_focus_lineup_model,
     "select_model": h_select_model,
     "select_exterior_color": h_select_exterior_color,
     "select_wheel": h_select_wheel,

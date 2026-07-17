@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 MODEL = os.environ.get("MILES_MODEL", "gemini-2.5-flash-native-audio-preview-09-2025")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-VOICE_NAME = os.environ.get("MILES_VOICE", "Aoede")
+VOICE_NAME = os.environ.get("MILES_VOICE", "Charon")
 
 
 def _build_client() -> genai.Client:
