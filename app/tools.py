@@ -62,11 +62,6 @@ def h_save_user_insight(state, mem, inp):
     return _ok({"saved": True, "category": cat})
 
 
-def h_show_lineup(state, mem, inp):
-    state.lineup_shown = True
-    return _ok({"stub": "lineup_carousel", "models": kb.lineup()})
-
-
 def h_select_model(state, mem, inp):
     model_id = inp["model"]
     if model_id != LOCKED_MODEL:
@@ -156,7 +151,6 @@ def h_animate_car(state, mem, inp):
 
 HANDLERS = {
     "save_user_insight": h_save_user_insight,
-    "show_lineup": h_show_lineup,
     "select_model": h_select_model,
     "select_exterior_color": h_select_exterior_color,
     "select_wheel": h_select_wheel,

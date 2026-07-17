@@ -39,16 +39,6 @@
     },
 
     {
-      "name": "show_lineup",
-      "description": "Show the user the Ford trucks & vans lineup during the LINEUP step (after the name exchange, before lifestyle discovery). Awareness only — this does NOT select or commit to any vehicle and does NOT write to the configuration. Call once when introducing 'the lineup'. Do not hint at which vehicle fits the user; that is the Phase 2 reveal.",
-      "input_schema": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      }
-    },
-
-    {
       "name": "select_model",
       "description": "Reveal/select a specific Ford vehicle and show the full 3D model. In this POC the reveal is LOCKED to the F-150 Lariat regardless of profiling. Call in Phase 2 at the reveal moment, after profiling is complete. Call at most once per reveal.",
       "input_schema": {
