@@ -15,8 +15,8 @@ export interface LineupItem {
 export const LINEUP: LineupItem[] = [
   { id: "maverick",     label: "MAVERICK",    size: "sm", slot: "a" },
   { id: "ranger",       label: "RANGER",      size: "md", slot: "b" },
-  { id: "f-150-lariat", label: "F-150",       size: "lg", slot: "c" },
-  { id: "super-duty",   label: "SUPER DUTY",  size: "lg", slot: "d" },
+  { id: "f-150", label: "F-150",       size: "lg", slot: "c" },
+  { id: "superduty",   label: "SUPER DUTY",  size: "lg", slot: "d" },
   { id: "e-transit",    label: "E-TRANSIT",   size: "md", slot: "e" },
   { id: "transit",      label: "TRANSIT",     size: "md", slot: "f" },
 ];

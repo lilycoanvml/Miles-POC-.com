@@ -1,15 +1,15 @@
 // Image manifest for the lineup cards, reveal gallery, hero and infotainment overlay.
 //
-// PLACEHOLDER STATE: the previous Mazda assets (Wikimedia Commons imagery + mazdausa.com
-// lineup sprites) have been removed for the Ford/Miles build. No licensed Ford press assets
-// are wired yet, so these are intentionally empty — cards fall back to their text labels and
-// the reveal gallery renders labelled tiles (see spec.ts / SummaryScreen). Drop Ford hero
-// renders into frontend/public/lineup/ and official press imagery here before the pitch.
-//
-// Expected keys (one hero render per carousel vehicle):
-//   maverick · ranger · f-150-lariat · super-duty · e-transit · transit
+// Lineup cards use the Ford renders in frontend/public/lineup/ (keys match the ids in
+// config/lineup.ts). Gallery/hero/infotainment imagery is still pending licensed Ford press
+// assets — those stay empty, so the reveal gallery renders labelled fallback tiles.
 export const LINEUP_IMG: Record<string, string> = {
-  // "f-150-lariat": "/lineup/f-150.png",   // ← example: add Ford renders under public/lineup/
+  "maverick":  "/lineup/maverick.png",
+  "ranger":    "/lineup/ranger.png",
+  "f-150":     "/lineup/f-150.png",
+  "superduty": "/lineup/superduty.png",
+  "e-transit": "/lineup/e-transit.png",
+  "transit":   "/lineup/transit.png",
 };
 
 // Reveal-gallery tiles for the finished F-150 build. Empty → SummaryScreen renders labelled

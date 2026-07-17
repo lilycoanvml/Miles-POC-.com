@@ -19,10 +19,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
 import traceback
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .agent import Miles
 
@@ -102,3 +105,11 @@ async def chat(ws: WebSocket) -> None:
             await ws.close()
         except Exception:
             pass
+
+
+# Serve the built frontend for the single-service deploy (the container sets MILES_STATIC_DIR to
+# the Vite `dist/` copied in by the Dockerfile). Mounted LAST so the /ws route above takes
+# precedence; html=True serves index.html at "/" and the hashed assets/GLB beneath it.
+_static_dir = os.environ.get("MILES_STATIC_DIR")
+if _static_dir and Path(_static_dir).is_dir():
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
