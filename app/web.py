@@ -12,19 +12,26 @@ Server events forwarded as JSON (see app/agent.py events()):
   {"type":"turn_complete", "phase":...}
   {"type":"error", "message":"..."}
 
+Access: if MILES_PASSCODE is set, a shared-passcode gate protects every route and the
+WebSocket (cookie-based, verified with a constant-time compare). Unset (local dev) = open.
+
 Run:  uvicorn app.web:app --reload --port 8000
 """
 from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
+import hmac
 import json
 import os
 import traceback
 from pathlib import Path
+from urllib.parse import parse_qs
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .agent import Miles
@@ -38,6 +45,96 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --------------------------------------------------------------------------- passcode gate
+# A shared-passcode gate for pitch demos. The Cloud Run service is publicly reachable, but the
+# app refuses every page and WebSocket until the passcode is entered. The passcode is injected
+# via MILES_PASSCODE (from Secret Manager) — never stored in the repo or image. The auth cookie
+# is an HMAC over a constant keyed by the passcode, so it's stateless (works across instances)
+# and never contains the passcode itself.
+MILES_PASSCODE = os.environ.get("MILES_PASSCODE")
+COOKIE_NAME = "miles_auth"
+COOKIE_MAX_AGE = 8 * 60 * 60  # 8 hours
+
+
+def _expected_token() -> str:
+    return hmac.new((MILES_PASSCODE or "").encode(), b"miles-authed", hashlib.sha256).hexdigest()
+
+
+def _is_authed(cookies) -> bool:
+    if not MILES_PASSCODE:
+        return True  # gate disabled (local dev)
+    tok = cookies.get(COOKIE_NAME)
+    return bool(tok) and hmac.compare_digest(tok, _expected_token())
+
+
+_LOGIN_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Miles — Enter passcode</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1119;
+    color:#e8eef5;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .card{width:min(380px,90vw);background:#141c27;border:1px solid #26313f;border-radius:16px;
+    padding:36px 32px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .brand{font-style:italic;font-weight:800;letter-spacing:.02em;color:#4a90ff;font-size:1.5rem;margin:0 0 4px}
+  p{color:#adb9c7;margin:0 0 22px;font-size:.92rem}
+  label{display:block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#7e8a98;margin:0 0 8px}
+  input{width:100%;padding:12px 14px;border-radius:9px;border:1px solid #35414f;background:#0b1119;
+    color:#e8eef5;font-size:1rem;outline:none}
+  input:focus{border-color:#4a90ff}
+  button{width:100%;margin-top:16px;padding:12px;border:0;border-radius:9px;background:#0b62e0;
+    color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+  button:hover{background:#0a56c6}
+  .err{color:#ff8a8a;font-size:.85rem;margin:12px 0 0}
+</style></head><body>
+  <form class="card" method="post" action="/login">
+    <p class="brand">Miles</p>
+    <p>Conversational Ford vehicle builder — enter the demo passcode to continue.</p>
+    <label for="p">Passcode</label>
+    <input id="p" name="passcode" type="password" autocomplete="current-password" autofocus>
+    <button type="submit">Enter</button>
+    <!--ERR-->
+  </form>
+</body></html>"""
+
+
+@app.get("/healthz")
+async def healthz() -> Response:
+    return Response("ok", media_type="text/plain")
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    if _is_authed(request.cookies):
+        return RedirectResponse("/", status_code=302)
+    err = request.query_params.get("e") == "1"
+    body = _LOGIN_HTML.replace("<!--ERR-->", '<p class="err">Incorrect passcode. Try again.</p>' if err else "")
+    return HTMLResponse(body)
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    raw = (await request.body()).decode("utf-8", "ignore")
+    supplied = (parse_qs(raw).get("passcode") or [""])[0]
+    if MILES_PASSCODE and hmac.compare_digest(supplied, MILES_PASSCODE):
+        resp = RedirectResponse("/", status_code=302)
+        resp.set_cookie(
+            COOKIE_NAME, _expected_token(),
+            max_age=COOKIE_MAX_AGE, httponly=True, secure=True, samesite="lax",
+        )
+        return resp
+    return RedirectResponse("/login?e=1", status_code=302)
+
+
+@app.middleware("http")
+async def passcode_gate(request: Request, call_next):
+    path = request.url.path
+    if not MILES_PASSCODE or path in ("/login", "/healthz") or _is_authed(request.cookies):
+        return await call_next(request)
+    return RedirectResponse("/login", status_code=302)
+
+
+# --------------------------------------------------------------------------- chat pumps
 
 async def _pump_events(ws: WebSocket, bot: Miles) -> None:
     try:
@@ -82,6 +179,10 @@ async def _pump_inbound(ws: WebSocket, bot: Miles) -> None:
 
 @app.websocket("/ws")
 async def chat(ws: WebSocket) -> None:
+    # WebSocket handshakes bypass HTTP middleware, so enforce the passcode here too.
+    if MILES_PASSCODE and not _is_authed(ws.cookies):
+        await ws.close(code=1008)  # policy violation
+        return
     await ws.accept()
     try:
         async with Miles() as bot:
@@ -108,8 +209,8 @@ async def chat(ws: WebSocket) -> None:
 
 
 # Serve the built frontend for the single-service deploy (the container sets MILES_STATIC_DIR to
-# the Vite `dist/` copied in by the Dockerfile). Mounted LAST so the /ws route above takes
-# precedence; html=True serves index.html at "/" and the hashed assets/GLB beneath it.
+# the Vite `dist/` copied in by the Dockerfile). Mounted LAST so the routes above take precedence;
+# html=True serves index.html at "/" and the hashed assets/GLB beneath it.
 _static_dir = os.environ.get("MILES_STATIC_DIR")
 if _static_dir and Path(_static_dir).is_dir():
     app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
