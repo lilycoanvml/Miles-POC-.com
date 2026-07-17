@@ -285,3 +285,20 @@ body { font-family: var(--sans); color: var(--ink); overflow: hidden; }
   .nav-left, .nav-loc { display: none; }
   .overlay { left: 16px; right: 16px; width: auto; bottom: 20px; }
 }
+
+/* ------------------------------------------------------------------ Greeting actions */
+.greeting-actions { display: flex; gap: 14px; margin-top: 26px; }
+.greeting-actions .cta { margin-top: 0; }
+
+/* ------------------------------------------------------------------ Orb / voice stage */
+.orb-screen { position: absolute; inset: 0; overflow: hidden; }
+.orb-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(62% 52% at 50% 44%, #ffffff 0%, #e9ebef 55%, #d3d6dc 100%);
+}
+.orb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
+.orb-hint {
+  position: absolute; left: 0; right: 0; bottom: 16vh; z-index: 3; text-align: center;
+  color: #5a5e64; font-size: 15px; letter-spacing: 0.04em; transition: opacity .4s ease;
+}
+.orb-hint-dim { opacity: 0.35; }

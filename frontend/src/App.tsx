@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavBar } from "./components/NavBar";
 import { ChatOverlay } from "./components/ChatOverlay";
+import { Orb } from "./components/Orb";
+import { GreetingScreen } from "./screens/GreetingScreen";
 import { LineupScreen } from "./screens/LineupScreen";
 import { ConfiguratorScreen } from "./screens/ConfiguratorScreen";
 import { SummaryScreen } from "./screens/SummaryScreen";
@@ -18,7 +20,8 @@ const WS_URL =
     ? `ws://${location.hostname}:8001/ws`
     : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
 
-type Screen = "lineup" | "configurator" | "summary";
+// Screen router: landing -> voice orb -> model carousel -> 3D configurator -> build summary.
+type Screen = "greeting" | "orb" | "lineup" | "configurator" | "summary";
 
 const TOOL_VIEW: Record<string, View> = {
   select_model: "hero",
@@ -34,6 +37,8 @@ export default function App() {
   const [view, setView] = useState<View>("hero");
   const [connected, setConnected] = useState(false);
   const [started, setStarted] = useState(false);
+  const [lineupShown, setLineupShown] = useState(false);
+  const [booked, setBooked] = useState(false);
   const [infotainmentOpen, setInfotainmentOpen] = useState(false);
   const [micActive, setMicActive] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -67,6 +72,10 @@ export default function App() {
       setPhase(ev.phase);
     } else if (ev.type === "tool") {
       setPhase(ev.phase);
+      // Flow milestones that drive the screen router.
+      if (ev.tool === "show_lineup") setLineupShown(true);
+      if (ev.tool === "book_test_drive" && ev.ok) setBooked(true);
+
       if (ev.tool === "set_car_view") {
         const v = ev.payload?.view as View | undefined;
         if (v) setView(v);
@@ -166,12 +175,22 @@ export default function App() {
     wsRef.current?.close();
   }, []);
 
-  const screen: Screen = stage.finalized ? "summary" : stage.model ? "configurator" : "lineup";
+  const screen: Screen =
+    !started ? "greeting"
+    : (stage.finalized || booked) ? "summary"
+    : stage.model ? "configurator"
+    : lineupShown ? "lineup"
+    : "orb";
+
+  // Dark chrome over the cinematic landing; light chrome over the bright stages.
+  const navTheme = screen === "greeting" ? "dark" : "light";
 
   return (
     <div className="app">
-      <NavBar theme="light" />
+      <NavBar theme={navTheme} />
 
+      {screen === "greeting" && <GreetingScreen onStart={start} />}
+      {screen === "orb" && <Orb speaking={speaking} />}
       {screen === "lineup" && <LineupScreen onPick={pickModel} />}
       {screen === "configurator" && (
         <ConfiguratorScreen stage={stage} view={view} onOpenInfotainment={() => setInfotainmentOpen(true)} />
@@ -180,16 +199,18 @@ export default function App() {
 
       <InfotainmentOverlay open={infotainmentOpen} onClose={() => setInfotainmentOpen(false)} />
 
-      <ChatOverlay
-        messages={messages}
-        connected={connected}
-        started={started}
-        micActive={micActive}
-        speaking={speaking}
-        onStart={start}
-        onSend={sendText}
-        onToggleMic={toggleMic}
-      />
+      {started && screen !== "summary" && (
+        <ChatOverlay
+          messages={messages}
+          connected={connected}
+          started={started}
+          micActive={micActive}
+          speaking={speaking}
+          onStart={start}
+          onSend={sendText}
+          onToggleMic={toggleMic}
+        />
+      )}
     </div>
   );
 }

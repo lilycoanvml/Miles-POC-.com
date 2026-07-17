@@ -14,3 +14,9 @@ miles_memory.json
 .DS_Store
 .vscode/
 .idea/
+
+# Large reference material (kept locally, never pushed)
+claude/*.mp4
+claude/*.zip
+*.mp4
+*.zip
