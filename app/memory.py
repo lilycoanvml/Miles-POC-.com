@@ -14,6 +14,11 @@ ROOT = Path(__file__).resolve().parent.parent
 # For real cross-instance persistence, back this with Firestore/GCS instead of a local file.
 MEMORY_PATH = Path(os.environ.get("MILES_MEMORY_PATH") or (ROOT / "miles_memory.json"))
 
+# MILES_MEMORY_MODE=ephemeral → every session starts fresh (no load, no save). Used for repeatable
+# demos so each page refresh restarts at the greeting/orb. Default "persist" keeps returning-user memory.
+def _ephemeral() -> bool:
+    return os.environ.get("MILES_MEMORY_MODE", "persist").lower() == "ephemeral"
+
 # Categories that live as top-level user facts vs. nested profiling insights.
 PROFILING_KEYS = {"passenger_count", "driving_environment", "daily_car_use", "weekend_vibe"}
 TOP_LEVEL_KEYS = {
@@ -23,6 +28,8 @@ TOP_LEVEL_KEYS = {
 
 
 def load() -> dict:
+    if _ephemeral():
+        return {"profiling": {}}
     if MEMORY_PATH.exists():
         with MEMORY_PATH.open(encoding="utf-8") as f:
             return json.load(f)
@@ -30,6 +37,8 @@ def load() -> dict:
 
 
 def save(mem: dict) -> None:
+    if _ephemeral():
+        return  # fresh-session demo mode: hold insights in-memory only, never persist to disk
     with MEMORY_PATH.open("w", encoding="utf-8") as f:
         json.dump(mem, f, indent=2, ensure_ascii=False)
 
