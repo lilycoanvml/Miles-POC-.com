@@ -17,7 +17,18 @@ from google import genai
 from google.genai import types
 
 from . import kb, memory, tools
+from .flags import is_miles3
 from .state import SessionState
+
+PERSONA_DIR = Path(__file__).resolve().parent.parent / "content" / "personas"
+
+
+def _load_persona_tone(persona_id: str) -> str:
+    path = PERSONA_DIR / persona_id / "tone.md"
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,6 +95,11 @@ def _render_system_prompt(mem: dict, now_iso: str) -> str:
         "(1–2 sentences). Speak naturally; do not narrate stage directions, emoji, or "
         "markdown. The current session state will be appended below; treat it as ground truth."
     )
+    # Miles 3.0: append the persona/budget taskflow (supersedes the v2 taskflow when active).
+    if is_miles3():
+        v3_path = ROOT / "system_prompt_miles3.md"
+        if v3_path.exists():
+            text += "\n" + v3_path.read_text(encoding="utf-8")
     return text
 
 
@@ -111,6 +127,7 @@ class Miles:
         self._cm = None
         self._out_queue: asyncio.Queue = asyncio.Queue()
         self._state_dirty = False
+        self._tone_injected: str | None = None  # persona id whose tone.md has been injected
 
     def _config(self) -> types.LiveConnectConfig:
         return types.LiveConnectConfig(
@@ -149,6 +166,31 @@ class Miles:
 
     def _with_state(self, user_text: str) -> str:
         return f"{user_text}\n\n<system-reminder>\n{self._state_block()}\n</system-reminder>"
+
+    async def _maybe_inject_persona_tone(self) -> None:
+        """Once the persona locks, hand Miles that persona's voice delta.
+
+        In voice mode the per-turn [STATE] reminder only rides on typed turns (see docs/AUDIT.md
+        D1), so we inject the tone as a standalone context turn (turn_complete=False) that persists
+        for the rest of the session. Fires once per locked persona.
+        """
+        if not is_miles3() or self._session is None:
+            return
+        dominant = self.state.persona.get("dominant")
+        if not dominant or dominant == self._tone_injected:
+            return
+        tone = _load_persona_tone(dominant)
+        if not tone:
+            return
+        self._tone_injected = dominant
+        reminder = (
+            f"<system-reminder>\nPersona locked: {dominant}. Adopt this voice for the rest of the "
+            f"conversation (still ≤40 words, one question):\n{tone}\n</system-reminder>"
+        )
+        await self._session.send_client_content(
+            turns=[types.Content(role="user", parts=[types.Part.from_text(text=reminder)])],
+            turn_complete=False,  # context only — do not trigger a response
+        )
 
     # -------- inbound: from the browser --------
     async def send_audio(self, pcm16_16k_bytes: bytes) -> None:
@@ -228,6 +270,10 @@ class Miles:
                                 response=_result_for_function_response(result, is_error),
                             ))
                         await self._session.send_tool_response(function_responses=responses)
+                        # A tool may have just completed discovery → (re)score persona and, once it
+                        # locks, hand Miles the matching voice (works in voice mode; see D1).
+                        self.state.update_persona()
+                        await self._maybe_inject_persona_tone()
         except Exception as exc:
             import traceback
             print(f"[events] EXC: {type(exc).__name__}: {exc}", flush=True)

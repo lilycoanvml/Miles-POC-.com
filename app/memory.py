@@ -20,7 +20,12 @@ def _ephemeral() -> bool:
     return os.environ.get("MILES_MEMORY_MODE", "persist").lower() == "ephemeral"
 
 # Categories that live as top-level user facts vs. nested profiling insights.
-PROFILING_KEYS = {"passenger_count", "driving_environment", "daily_car_use", "weekend_vibe"}
+# Union of the miles2 lifestyle set and the miles3 needs-mapped set, so insights nest under
+# "profiling" regardless of the active flow.
+PROFILING_KEYS = {
+    "passenger_count", "driving_environment", "daily_car_use", "weekend_vibe",
+    "life_mode", "daily_use", "powertrain_comfort", "passengers",
+}
 TOP_LEVEL_KEYS = {
     "full_name", "email", "location", "height_cm",
     "test_drive_preferences", "car_config", "test_drive_appointment",

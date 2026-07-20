@@ -11,9 +11,18 @@ import json
 from pathlib import Path
 
 from . import kb, memory
-from .state import LOCKED_MODEL, SessionState
+from .flags import is_miles3
+from .state import (
+    LOCKED_MODEL,
+    PROFILING_FIELDS_V2,
+    PROFILING_FIELDS_V3,
+    SessionState,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Any discovery field from either flow routes into state.profile.
+_PROFILE_CATEGORIES = set(PROFILING_FIELDS_V2) | set(PROFILING_FIELDS_V3)
 
 
 def load_tool_schemas() -> list[dict]:
@@ -33,6 +42,11 @@ def _ok(payload: dict) -> tuple[str, bool]:
 
 def gate(name: str, state: SessionState) -> str | None:
     """Return an error message if the tool isn't legal yet, else None."""
+    if name == "set_budget":
+        if not is_miles3():
+            return "Budget capture is only available in the miles3 flow."
+        if not state.profiling_complete:
+            return "Finish discovery before asking about budget."
     if name in ("focus_lineup_model", "spin_lineup") and not state.lineup_shown:
         return "Introduce the lineup with show_lineup before scrolling or spinning it."
     if name in ("select_exterior_color", "select_wheel", "select_interior") and not state.config.get("model"):
@@ -59,10 +73,20 @@ def h_save_user_insight(state, mem, inp):
     memory.set_insight(mem, cat, val)
     if cat == "full_name":
         state.full_name = val
-    elif cat in ("passenger_count", "driving_environment", "daily_car_use", "weekend_vibe"):
+    elif cat in _PROFILE_CATEGORIES:
         state.profile[cat] = val
     # `value` is echoed so the UI can render collected details (name, location, etc.) as blocks.
     return _ok({"saved": True, "category": cat, "value": val})
+
+
+def h_set_budget(state, mem, inp):
+    budget = {"max": int(inp["max"])}
+    if inp.get("min") is not None:
+        budget["min"] = int(inp["min"])
+    if inp.get("monthly") is not None:
+        budget["monthly"] = int(inp["monthly"])
+    state.budget = budget
+    return _ok({"stub": "budget_set", "budget": budget})
 
 
 def h_show_lineup(state, mem, inp):
@@ -177,6 +201,7 @@ def h_animate_car(state, mem, inp):
 
 HANDLERS = {
     "save_user_insight": h_save_user_insight,
+    "set_budget": h_set_budget,
     "show_lineup": h_show_lineup,
     "focus_lineup_model": h_focus_lineup_model,
     "spin_lineup": h_spin_lineup,

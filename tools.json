@@ -24,10 +24,14 @@
               "driving_environment",
               "daily_car_use",
               "weekend_vibe",
+              "life_mode",
+              "daily_use",
+              "powertrain_comfort",
+              "passengers",
               "car_config",
               "test_drive_appointment"
             ],
-            "description": "Which insight is being saved."
+            "description": "Which insight is being saved. miles3 discovery uses life_mode (project_home|trails_camp|the_drive), daily_use (work_haul|family|commute|play), powertrain_comfort (gas|hybrid|ev), passengers."
           },
           "value": {
             "type": "string",
@@ -35,6 +39,20 @@
           }
         },
         "required": ["category", "value"]
+      }
+    },
+
+    {
+      "name": "set_budget",
+      "description": "Record the user's budget for the build. miles3 flow only. Call ONCE, in the BUDGET step (right after discovery), the moment the user gives a number or range. Frame it warmly, tied to Ford's 'Know your budget — zero credit impact' pre-qualify idea (copy only, no real credit check). Awareness only — it does not select or price a vehicle.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "max": { "type": "integer", "description": "Upper budget in USD (total vehicle price). Required — if the user gives only a monthly figure, estimate a sensible total and also pass monthly." },
+          "min": { "type": "integer", "description": "Lower bound in USD, if the user gave a range." },
+          "monthly": { "type": "integer", "description": "Preferred monthly payment in USD, if the user framed it that way." }
+        },
+        "required": ["max"]
       }
     },
 
