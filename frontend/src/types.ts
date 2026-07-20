@@ -1,5 +1,11 @@
 // Mirrors the event shapes emitted by app/agent.py and forwarded by app/web.py.
 
+export interface Budget {
+  min?: number;
+  max?: number;
+  monthly?: number;
+}
+
 export interface ToolEvent {
   type: "tool";
   tool: string;
@@ -7,6 +13,11 @@ export interface ToolEvent {
   payload: any;
   phase: string;
   config: Record<string, string | undefined>;
+  // Miles 3.0 (present only in the miles3 flow):
+  persona?: string | null;
+  budget?: Budget | null;
+  running_total?: number | null;
+  revealed?: string | null;
 }
 export interface AudioEvent {
   type: "audio";

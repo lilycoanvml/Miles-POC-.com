@@ -17,6 +17,13 @@ type Phase = "listening" | "morphing" | "carousel";
 
 const LEN = LINEUP.length;
 const HERO_INDEX = Math.max(0, lineupIndex(HERO_ID));
+// Orb hue by persona (matches content/personas/<id>/persona.json orbSignal). Default = light blue.
+const PERSONA_TINT: Record<string, [number, number, number]> = {
+  build: [31, 95, 166],
+  thrill: [194, 24, 7],
+  adventure: [46, 125, 50],
+};
+const DEFAULT_TINT: [number, number, number] = [150, 195, 255];
 const MORPH_MS = 3200; // keep in sync with the morph keyframe durations in styles.css
 const SPIN_MS = 1500; // auto-advance interval while spinning
 // The carousel renders three concatenated copies of the lineup so it can loop endlessly; the
@@ -29,15 +36,19 @@ interface Props {
   revealStarted: boolean; // lineup has been shown → play the morph
   focusedId: string | null; // vehicle Miles asked to centre (Tier-1 id)
   spinning: boolean; // Miles asked to auto-spin through the lineup
+  persona?: string | null; // locked persona (miles3) → tints the orb
 }
 
-export function RevealScreen({ speaking, revealStarted, focusedId, spinning }: Props) {
+export function RevealScreen({ speaking, revealStarted, focusedId, spinning, persona }: Props) {
   const [phase, setPhase] = useState<Phase>(revealStarted ? "carousel" : "listening");
   const [index, setIndex] = useState(START); // absolute index into the tripled item list
   const [animate, setAnimate] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const speakingRef = useRef(speaking);
   speakingRef.current = speaking;
+  // Live tint so the running animation picks up a persona change without restarting.
+  const tintRef = useRef<[number, number, number]>(DEFAULT_TINT);
+  tintRef.current = (persona && PERSONA_TINT[persona]) || DEFAULT_TINT;
 
   const heroImg = useMemo(() => lineupImage(HERO_ID), []);
 
@@ -80,12 +91,13 @@ export function RevealScreen({ speaking, revealStarted, focusedId, spinning }: P
 
       const span = w * 0.72;
       const amp = h * (0.06 + 0.05 * intensity);
+      const [tr, tg, tb] = tintRef.current;
 
       // soft halo behind the ribbon
       const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, span * 0.7);
-      halo.addColorStop(0, `rgba(180,210,255,${0.12 + 0.14 * intensity})`);
-      halo.addColorStop(0.55, "rgba(150,190,255,0.05)");
-      halo.addColorStop(1, "rgba(150,190,255,0)");
+      halo.addColorStop(0, `rgba(${tr},${tg},${tb},${0.14 + 0.16 * intensity})`);
+      halo.addColorStop(0.55, `rgba(${tr},${tg},${tb},0.06)`);
+      halo.addColorStop(1, `rgba(${tr},${tg},${tb},0)`);
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, w, h);
 
@@ -101,8 +113,8 @@ export function RevealScreen({ speaking, revealStarted, focusedId, spinning }: P
         if (r <= 0) continue;
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, `rgba(255,255,255,${core})`);
-        g.addColorStop(0.5, `rgba(205,228,255,${core * 0.5})`);
-        g.addColorStop(1, "rgba(165,205,255,0)");
+        g.addColorStop(0.5, `rgba(${(tr + 510) / 3},${(tg + 510) / 3},${(tb + 510) / 3},${core * 0.5})`);
+        g.addColorStop(1, `rgba(${tr},${tg},${tb},0)`);
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -130,7 +142,7 @@ export function RevealScreen({ speaking, revealStarted, focusedId, spinning }: P
           else ctx.lineTo(x, y);
         }
         ctx.lineWidth = dpr * (0.8 + k * 0.3);
-        ctx.shadowColor = "rgba(185,218,255,0.9)";
+        ctx.shadowColor = `rgba(${tr},${tg},${tb},0.9)`;
         ctx.shadowBlur = dpr * 9;
         ctx.strokeStyle = `rgba(255,255,255,${0.12 + 0.16 * intensity})`;
         ctx.stroke();

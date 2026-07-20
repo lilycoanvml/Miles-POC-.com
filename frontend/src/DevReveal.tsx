@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavBar } from "./components/NavBar";
 import { RevealScreen } from "./screens/RevealScreen";
 import { SummaryScreen } from "./screens/SummaryScreen";
+import { BudgetHud } from "./components/BudgetHud";
 import { HERO_ID, LINEUP, lineupImage } from "./config/lineup";
 import { DEFAULT_RIG } from "./three/rig";
 
@@ -15,7 +16,7 @@ function SummaryPreview() {
   return (
     <div className="app">
       <NavBar theme="light" />
-      <SummaryScreen stage={stage} details={details} />
+      <SummaryScreen stage={stage} details={details} budget={{ max: 70000, monthly: 900 }} runningTotal={64590} />
     </div>
   );
 }
@@ -57,8 +58,11 @@ export function DevReveal() {
   const [revealStarted, setRevealStarted] = useState(params.get("state") === "carousel");
   const [focusedId, setFocusedId] = useState<string | null>(params.get("focus"));
   const [spinning, setSpinning] = useState(params.get("spin") === "1");
+  const [persona, setPersona] = useState<string | null>(params.get("persona"));
   const [speaking, setSpeaking] = useState(true);
   const showLayers = params.get("layers") === "1";
+  const total = params.get("total") ? Number(params.get("total")) : null;
+  const max = params.get("max") ? Number(params.get("max")) : null;
 
   // fake speaking pulse so the ribbon reacts
   useEffect(() => {
@@ -80,10 +84,14 @@ export function DevReveal() {
   return (
     <div className="app">
       <NavBar theme="light" />
-      <RevealScreen speaking={speaking} revealStarted={revealStarted} focusedId={focusedId} spinning={spinning} />
+      <RevealScreen speaking={speaking} revealStarted={revealStarted} focusedId={focusedId} spinning={spinning} persona={persona} />
+      {max != null && <BudgetHud budget={{ max }} runningTotal={total} />}
       <div style={{ position: "absolute", left: 24, bottom: 24, zIndex: 50, display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 520 }}>
         <button onClick={() => setRevealStarted(true)}>show_lineup (morph)</button>
         <button onClick={() => setSpinning((s) => !s)}>{spinning ? "stop spin" : "spin_lineup"}</button>
+        {["build", "thrill", "adventure"].map((p) => (
+          <button key={p} onClick={() => setPersona(p)}>persona:{p}</button>
+        ))}
         {LINEUP.map((it) => (
           <button key={it.id} onClick={() => { setSpinning(false); setFocusedId(it.id); }}>{it.label}</button>
         ))}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavBar } from "./components/NavBar";
 import { VoiceControl } from "./components/VoiceControl";
+import { BudgetHud } from "./components/BudgetHud";
 import { GreetingScreen } from "./screens/GreetingScreen";
 import { RevealScreen } from "./screens/RevealScreen";
 import { ConfiguratorScreen } from "./screens/ConfiguratorScreen";
@@ -8,7 +9,7 @@ import { SummaryScreen } from "./screens/SummaryScreen";
 import { InfotainmentOverlay } from "./components/InfotainmentOverlay";
 import type { View } from "./three/cameraPresets";
 import { DEFAULT_RIG } from "./three/rig";
-import type { BookingDetails, ServerEvent, StageState } from "./types";
+import type { BookingDetails, Budget, ServerEvent, StageState } from "./types";
 import { AudioSink, MicStream, int16ToBase64 } from "./voice";
 
 // Same-origin by default (single-service Cloud Run). In dev (Vite on :5173), talk
@@ -39,6 +40,9 @@ export default function App() {
   const [lineupFocus, setLineupFocus] = useState<string | null>(null);
   const [lineupSpin, setLineupSpin] = useState(false);
   const [details, setDetails] = useState<BookingDetails>({});
+  const [persona, setPersona] = useState<string | null>(null);
+  const [budget, setBudget] = useState<Budget | null>(null);
+  const [runningTotal, setRunningTotal] = useState<number | null>(null);
   const [booked, setBooked] = useState(false);
   const [infotainmentOpen, setInfotainmentOpen] = useState(false);
   const [micActive, setMicActive] = useState(false);
@@ -59,6 +63,10 @@ export default function App() {
       setPhase(ev.phase);
     } else if (ev.type === "tool") {
       setPhase(ev.phase);
+      // Miles 3.0 signals (present only in the miles3 flow).
+      if (ev.persona != null) setPersona(ev.persona);
+      if (ev.budget != null) setBudget(ev.budget);
+      if (ev.running_total != null) setRunningTotal(ev.running_total);
       // Flow milestones that drive the screen router.
       if (ev.tool === "show_lineup") setLineupShown(true);
       if (ev.tool === "focus_lineup_model") {
@@ -191,12 +199,16 @@ export default function App() {
 
       {screen === "greeting" && <GreetingScreen onStart={start} />}
       {screen === "reveal" && (
-        <RevealScreen speaking={speaking} revealStarted={lineupShown} focusedId={lineupFocus} spinning={lineupSpin} />
+        <RevealScreen speaking={speaking} revealStarted={lineupShown} focusedId={lineupFocus} spinning={lineupSpin} persona={persona} />
       )}
       {screen === "configurator" && (
         <ConfiguratorScreen stage={stage} view={view} onOpenInfotainment={() => setInfotainmentOpen(true)} />
       )}
-      {screen === "summary" && <SummaryScreen stage={stage} details={details} />}
+      {screen === "summary" && <SummaryScreen stage={stage} details={details} budget={budget} runningTotal={runningTotal} />}
+
+      {started && screen !== "greeting" && screen !== "summary" && (
+        <BudgetHud budget={budget} runningTotal={runningTotal} />
+      )}
 
       <InfotainmentOverlay open={infotainmentOpen} onClose={() => setInfotainmentOpen(false)} />
 

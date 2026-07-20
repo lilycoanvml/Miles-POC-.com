@@ -144,6 +144,9 @@ class SessionState:
                 lines.append(f"revealed={self.revealed_model}")
             if self.running_total:
                 lines.append(f"running_total={self.running_total}")
+                ceiling = self.budget.get("max")
+                if ceiling and self.running_total > ceiling:
+                    lines.append(f"over_budget={self.running_total - ceiling}")
         if self.config:
             lines.append(f"config={self.config}")
         if self.config_finalized:

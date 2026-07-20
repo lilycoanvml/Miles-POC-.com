@@ -254,6 +254,9 @@ class Miles:
                         for fc in msg.tool_call.function_calls:
                             args = dict(fc.args or {})
                             result, is_error = tools.execute(fc.name, args, self.state, self.memory)
+                            # Refresh persona + running total so the event carries current values.
+                            self.state.update_persona()
+                            self.state.update_running_total()
                             payload = None
                             if not is_error:
                                 try:
@@ -264,6 +267,10 @@ class Miles:
                                 "type": "tool", "tool": fc.name, "ok": not is_error,
                                 "payload": payload, "phase": self.state.phase,
                                 "config": dict(self.state.config),
+                                "persona": self.state.persona.get("dominant"),
+                                "budget": self.state.budget or None,
+                                "running_total": self.state.running_total or None,
+                                "revealed": self.state.revealed_model,
                             }
                             responses.append(types.FunctionResponse(
                                 id=fc.id, name=fc.name,

@@ -1,15 +1,27 @@
-import type { BookingDetails, StageState } from "../types";
+import type { BookingDetails, Budget, StageState } from "../types";
 import { buildSummary, OFFERS, PRICING, STANDARD_FEATURES } from "../config/spec";
 import { ConfiguratorStage } from "../three/ConfiguratorStage";
+
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 /**
  * Final reveal — the "build summary" page: the configured 3D truck on the left, and the YOUR BUILD
  * spec panel on the right. Details the user shared during booking (name, location, appointment)
  * appear as blocks under the vehicle title as they're collected.
  */
-export function SummaryScreen({ stage, details }: { stage: StageState; details?: BookingDetails }) {
+export function SummaryScreen({
+  stage, details, budget, runningTotal,
+}: {
+  stage: StageState;
+  details?: BookingDetails;
+  budget?: Budget | null;
+  runningTotal?: number | null;
+}) {
   const b = buildSummary(stage);
   const blocks = detailBlocks(details);
+  const total = runningTotal ?? null;
+  const max = budget?.max ?? null;
+  const over = total != null && max != null && total > max;
 
   return (
     <div className="summary">
@@ -62,8 +74,15 @@ export function SummaryScreen({ stage, details }: { stage: StageState; details?:
             <Row k="Lease estimate" v={PRICING.leaseEstimate} />
             <div className="build-total">
               <span>Total as Built</span>
-              <strong>{PRICING.totalAsBuilt}</strong>
+              <strong>{total != null ? usd(total) : PRICING.totalAsBuilt}</strong>
             </div>
+            {max != null && (
+              <div className={`budget-status ${over ? "is-over" : "is-in"}`}>
+                {over
+                  ? `${usd((total ?? 0) - max)} over your ${usd(max)} budget — I can find the same feel for less.`
+                  : `Within your ${usd(max)} budget ✓`}
+              </div>
+            )}
           </div>
 
           <div className="build-section">

@@ -258,6 +258,27 @@ body { font-family: var(--sans); color: var(--ink); overflow: hidden; }
 }
 .detail-k { font-size: 10px; letter-spacing: 0.12em; color: #9a9ea4; text-transform: uppercase; }
 .detail-v { font-size: 14px; color: #1a1a1a; font-weight: 500; }
+
+/* ------------------------------------------------------------------ Budget (miles3) */
+.budget-hud {
+  position: absolute; right: 34px; bottom: 38px; z-index: 20; width: min(260px, 42vw);
+  background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(10px);
+  border: 1px solid rgba(40, 44, 52, 0.10); border-radius: 14px; padding: 12px 14px;
+  box-shadow: 0 6px 24px rgba(40, 44, 52, 0.12); color: #23262b;
+}
+.budget-hud.is-over { border-color: rgba(158, 17, 21, 0.5); background: rgba(255, 244, 244, 0.92); }
+.budget-hud-row { display: flex; justify-content: space-between; align-items: baseline; }
+.budget-hud-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7078; }
+.budget-hud.is-over .budget-hud-label { color: #9e1115; }
+.budget-hud-total { font-size: 18px; font-weight: 600; }
+.budget-hud-bar { height: 4px; border-radius: 2px; background: rgba(40, 44, 52, 0.12); margin: 8px 0 6px; overflow: hidden; }
+.budget-hud-fill { height: 100%; background: #1f5fa6; transition: width .4s ease; }
+.budget-hud.is-over .budget-hud-fill { background: #9e1115; }
+.budget-hud-cap { font-size: 11px; color: #6b7078; letter-spacing: 0.02em; }
+
+.budget-status { margin-top: 10px; font-size: 13px; padding: 8px 10px; border-radius: 8px; line-height: 1.4; }
+.budget-status.is-in { background: #eef7ee; color: #2e7d32; }
+.budget-status.is-over { background: #fdecec; color: #9e1115; }
 .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .gallery-tile {
   position: relative; overflow: hidden;
