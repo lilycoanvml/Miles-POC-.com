@@ -128,6 +128,7 @@ class Miles:
         self._out_queue: asyncio.Queue = asyncio.Queue()
         self._state_dirty = False
         self._tone_injected: str | None = None  # persona id whose tone.md has been injected
+        self._last_phase: str | None = None      # for phase-transition analytics
 
     def _config(self) -> types.LiveConnectConfig:
         return types.LiveConnectConfig(
@@ -166,6 +167,14 @@ class Miles:
 
     def _with_state(self, user_text: str) -> str:
         return f"{user_text}\n\n<system-reminder>\n{self._state_block()}\n</system-reminder>"
+
+    def _track_phase(self) -> None:
+        """Emit a phase_entered analytics event when the flow advances."""
+        from . import analytics
+        phase = self.state.phase
+        if phase != self._last_phase:
+            analytics.emit("phase_entered", phase=phase)
+            self._last_phase = phase
 
     async def _maybe_inject_persona_tone(self) -> None:
         """Once the persona locks, hand Miles that persona's voice delta.
@@ -246,6 +255,7 @@ class Miles:
                         if sc.interrupted:
                             yield {"type": "interrupted"}
                         if sc.turn_complete:
+                            self._track_phase()
                             yield {"type": "turn_complete", "phase": self.state.phase}
 
                     # Tool calls.
@@ -281,6 +291,7 @@ class Miles:
                         # locks, hand Miles the matching voice (works in voice mode; see D1).
                         self.state.update_persona()
                         await self._maybe_inject_persona_tone()
+                        self._track_phase()
         except Exception as exc:
             import traceback
             print(f"[events] EXC: {type(exc).__name__}: {exc}", flush=True)

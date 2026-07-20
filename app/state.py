@@ -71,7 +71,12 @@ class SessionState:
         if not is_miles3() or not self.profiling_complete:
             return
         from . import persona as persona_mod
+        prev = self.persona.get("dominant")
         self.persona = persona_mod.score(self.profile, persona_mod.load_registries())
+        dominant = self.persona.get("dominant")
+        if dominant and dominant != prev:
+            from . import analytics
+            analytics.emit("persona_locked", dominant=dominant, confidence=self.persona.get("confidence"))
 
     def update_running_total(self) -> None:
         """Recompute the running build total from the live config (miles3 only)."""

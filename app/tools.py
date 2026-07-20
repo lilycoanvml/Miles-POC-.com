@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import kb, memory
+from . import analytics, budget, kb, memory
 from .flags import is_miles3
 from .state import (
     LOCKED_MODEL,
@@ -86,6 +86,7 @@ def h_set_budget(state, mem, inp):
     if inp.get("monthly") is not None:
         budget["monthly"] = int(inp["monthly"])
     state.budget = budget
+    analytics.emit("budget_captured", **budget)
     return _ok({"stub": "budget_set", "budget": budget})
 
 
@@ -122,6 +123,8 @@ def h_select_model(state, mem, inp):
         m = kb.model(build_id)
         state.config = {"model": build_id}  # reset config on (re)select
         state.config_finalized = False
+        analytics.emit("model_revealed", revealed=model_id, build=build_id,
+                       persona=state.persona.get("dominant"))
         return _ok({
             "stub": "model_silhouette",
             "revealed": model_id,
@@ -152,6 +155,7 @@ def h_select_exterior_color(state, mem, inp):
     if not c:
         return _err(f"'{color_id}' isn't available on this model. Options: {kb.color_ids(model_id)}")
     state.config["exterior_color"] = color_id
+    analytics.emit("option_changed", category="exterior_color", id=color_id, price=c.get("price", 0))
     return _ok({"stub": "exterior_render", "color": c})
 
 
@@ -161,6 +165,7 @@ def h_select_wheel(state, mem, inp):
     if not w:
         return _err(f"'{wheel_id}' isn't a valid wheel for this model. Options: {kb.wheel_ids(model_id)}")
     state.config["wheel"] = wheel_id
+    analytics.emit("option_changed", category="wheel", id=wheel_id, price=w.get("price", 0))
     return _ok({"stub": "wheel_silhouette", "wheel": w})
 
 
@@ -170,6 +175,7 @@ def h_select_interior(state, mem, inp):
     if not i:
         return _err(f"'{interior_id}' isn't a valid interior for this model. Options: {kb.interior_ids(model_id)}")
     state.config["interior"] = interior_id
+    analytics.emit("option_changed", category="interior", id=interior_id, price=i.get("price", 0))
     return _ok({"stub": "interior_upholstery", "interior": i})
 
 
@@ -183,6 +189,9 @@ def h_display_car_configuration(state, mem, inp):
         "interior": kb.interior(state.config["model"], state.config["interior"]),
     }
     memory.set_insight(mem, "car_config", json.dumps({k: state.config[k] for k in state.config}))
+    state.update_running_total()
+    analytics.emit("summary_shown", running_total=state.running_total or None,
+                   in_budget=budget.in_budget(state), persona=state.persona.get("dominant"))
     return _ok({"stub": "full_carousel", "configuration": full})
 
 
@@ -206,10 +215,20 @@ def h_book_test_drive(state, mem, inp):
     memory.set_insight(mem, "test_drive_appointment", json.dumps(appt))
     memory.set_insight(mem, "full_name", inp["full_name"])
     memory.set_insight(mem, "email", inp["email"])
+    # Handoff integrity: carry the full build + price + persona through to booking, intact.
+    state.update_running_total()
+    handoff = {
+        "config": dict(state.config),
+        "running_total": state.running_total or None,
+        "persona": state.persona.get("dominant"),
+        "budget": state.budget or None,
+    }
+    analytics.emit("booking_submitted", **{**appt, **handoff})
     # Faked booking: always "available" in the POC; no real scheduling occurs.
     return _ok({
         "confirmed": True, "mock": True, **appt,
         "full_name": inp["full_name"], "email": inp["email"],
+        **handoff,
     })
 
 
