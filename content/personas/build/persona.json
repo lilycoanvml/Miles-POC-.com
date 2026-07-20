@@ -1,0 +1,12 @@
+{
+  "id": "build",
+  "label": "Build",
+  "rsfPrompt": "What do you need to get done?",
+  "scoringWeights": {
+    "life_mode":          { "project_home": 3, "trails_camp": 0, "the_drive": 0 },
+    "daily_use":          { "work_haul": 3, "family": 2, "commute": 1, "play": 0 },
+    "powertrain_comfort": { "gas": 0, "hybrid": 1, "ev": 0 }
+  },
+  "priorityOptionCategories": ["capability", "safety", "tech"],
+  "orbSignal": { "hue": "#1F5FA6", "motion": "steady" }
+}

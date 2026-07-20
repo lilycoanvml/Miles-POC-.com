@@ -1,0 +1,20 @@
+{
+  "beatMicrocopy": {
+    "budget": [
+      "Give me your range; I'll make the gear fit the budget, not the reverse.",
+      "Tell me your number and I'll build the one that goes furthest for it."
+    ],
+    "reveal": [
+      "Meet your trail partner — the one that says yes when the map runs out.",
+      "Here's the one built for the detour, not just the destination."
+    ],
+    "fineTune": [
+      "More trail-ready, or lighter on the wallet?",
+      "More gear for the wild, or keep it lean?"
+    ]
+  },
+  "rsfModularLines": [
+    "READY. SET. GO SEE IT",
+    "READY. SET. HIT THE TRAIL"
+  ]
+}

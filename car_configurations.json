@@ -2,17 +2,19 @@
   "_meta": {
     "market": "US",
     "model_year": 2026,
-    "poc_note": "Tier 1 (lineup) is awareness-only: the six Ford trucks and vans in the prototype carousel, name + character, no config tree. Tier 2 (models) carries the full configurable tree and exists ONLY for the F-150 Lariat in this POC. Reveal is locked to f-150-lariat.",
-    "verified": "Colour / wheel / interior option lists sourced from the Ford F-150 Lariat build & price configurator (2026 model year). Confirm against official Ford data before production."
+    "poc_note": "Tier 1 (lineup) is awareness-only: the six Ford trucks and vans in the prototype carousel, name + character, no config tree. Tier 2 (models) carries the full configurable tree and exists ONLY for the F-150 Lariat in this POC.",
+    "verified": "Colour / wheel / interior option lists sourced from the Ford F-150 Lariat build & price configurator (2026 model year). Confirm against official Ford data before production.",
+    "miles3_pricing": "lineup[].price = nameplate STARTING MSRP (2026, ford.com, price_verified:true) — used for persona/budget narrowing. It is the entry price to the nameplate, NOT the buildable trim base (the F-150 Lariat build base lives in models.f-150-lariat.trims[].starting_price_usd = 62995). Option price fields are DELTAS from the trim base; those marked price_verified:false are directional placeholders — verify against the ford.com configurator before production.",
+    "miles3_personaTags": "lineup[].personaTags scores {build,thrill,adventure} per vehicle (0-3), tunable defaults for app/persona.py recommendation. Thrill has no native performance vehicle yet (see docs/AUDIT.md)."
   },
 
   "lineup": [
-    { "id": "maverick",     "name": "Ford Maverick",   "segment": "Compact pickup",        "character": "The right-sized truck — city-friendly, thrifty, endlessly handy for the weekend." },
-    { "id": "ranger",       "name": "Ford Ranger",     "segment": "Midsize pickup",        "character": "The adventurer's mid-size — nimble on the trail, tough enough for real work." },
-    { "id": "f-150-lariat", "name": "Ford F-150",      "segment": "Full-size pickup",      "character": "America's truck — the all-rounder that hauls, tows, and does it in comfort." },
-    { "id": "super-duty",   "name": "Ford Super Duty", "segment": "Heavy-duty pickup",     "character": "The heavy hitter — built for the biggest trailers and the hardest jobs." },
-    { "id": "e-transit",    "name": "Ford E-Transit",  "segment": "Electric cargo van",    "character": "The all-electric workhorse — quiet, clean, and ready for the daily route." },
-    { "id": "transit",      "name": "Ford Transit",    "segment": "Full-size cargo van",   "character": "The cavernous do-anything van — the mobile workshop that swallows it all." }
+    { "id": "maverick",     "name": "Ford Maverick",   "segment": "Compact pickup",        "character": "The right-sized truck — city-friendly, thrifty, endlessly handy for the weekend.", "price": 28145, "price_verified": true, "personaTags": { "build": 3, "thrill": 1, "adventure": 2 } },
+    { "id": "ranger",       "name": "Ford Ranger",     "segment": "Midsize pickup",        "character": "The adventurer's mid-size — nimble on the trail, tough enough for real work.",         "price": 33550, "price_verified": true, "personaTags": { "build": 1, "thrill": 1, "adventure": 3 } },
+    { "id": "f-150-lariat", "name": "Ford F-150",      "segment": "Full-size pickup",      "character": "America's truck — the all-rounder that hauls, tows, and does it in comfort.",          "price": 39585, "price_verified": true, "personaTags": { "build": 3, "thrill": 1, "adventure": 2 } },
+    { "id": "super-duty",   "name": "Ford Super Duty", "segment": "Heavy-duty pickup",     "character": "The heavy hitter — built for the biggest trailers and the hardest jobs.",              "price": 45975, "price_verified": true, "personaTags": { "build": 3, "thrill": 1, "adventure": 1 } },
+    { "id": "e-transit",    "name": "Ford E-Transit",  "segment": "Electric cargo van",    "character": "The all-electric workhorse — quiet, clean, and ready for the daily route.",            "price": 48150, "price_verified": true, "personaTags": { "build": 3, "thrill": 0, "adventure": 0 } },
+    { "id": "transit",      "name": "Ford Transit",    "segment": "Full-size cargo van",   "character": "The cavernous do-anything van — the mobile workshop that swallows it all.",            "price": 59180, "price_verified": true, "personaTags": { "build": 3, "thrill": 0, "adventure": 1 } }
   ],
 
   "models": {
@@ -40,29 +42,29 @@
         { "id": "tow-haul",      "label": "Best-in-class towing and payload capability",    "benefit": "Haul the trailer, the boat or a weekend's worth of gear with room to spare." }
       ],
       "exterior_colors": [
-        { "id": "agate-black",     "name": "Agate Black Metallic",                 "note": "A deep, glossy black with a fine metallic sparkle." },
-        { "id": "oxford-white",    "name": "Oxford White",                         "note": "A clean, classic, work-ready white." },
-        { "id": "iconic-silver",   "name": "Iconic Silver Metallic",               "note": "A bright, modern silver that shrugs off the dust." },
-        { "id": "carbonized-gray", "name": "Carbonized Gray Metallic",             "note": "A dark, technical grey with a rugged edge." },
-        { "id": "avalanche",       "name": "Avalanche",                            "note": "A cool, light stone-grey — understated and tough." },
-        { "id": "marsh-gray",      "name": "Marsh Gray",                           "note": "A warm, muted earth-grey made for the trail." },
-        { "id": "antimatter-blue", "name": "Antimatter Blue Metallic",             "note": "A deep, confident blue with real depth." },
-        { "id": "argon-blue",      "name": "Argon Blue Metallic",                  "note": "A brighter, energetic blue with a sporting edge." },
-        { "id": "ruby-red",        "name": "Ruby Red Metallic Tinted Clearcoat",   "note": "A rich, jewel-like red under a tinted clearcoat." },
-        { "id": "star-white",      "name": "Star White Metallic Tri-Coat",         "note": "A luminous pearl white with a soft, premium shimmer." }
+        { "id": "agate-black",     "name": "Agate Black Metallic",                 "note": "A deep, glossy black with a fine metallic sparkle.", "price": 0,   "price_verified": false },
+        { "id": "oxford-white",    "name": "Oxford White",                         "note": "A clean, classic, work-ready white.",                "price": 0,   "price_verified": false },
+        { "id": "iconic-silver",   "name": "Iconic Silver Metallic",               "note": "A bright, modern silver that shrugs off the dust.",  "price": 0,   "price_verified": false },
+        { "id": "carbonized-gray", "name": "Carbonized Gray Metallic",             "note": "A dark, technical grey with a rugged edge.",         "price": 0,   "price_verified": false },
+        { "id": "avalanche",       "name": "Avalanche",                            "note": "A cool, light stone-grey — understated and tough.",  "price": 0,   "price_verified": false },
+        { "id": "marsh-gray",      "name": "Marsh Gray",                           "note": "A warm, muted earth-grey made for the trail.",       "price": 0,   "price_verified": false },
+        { "id": "antimatter-blue", "name": "Antimatter Blue Metallic",             "note": "A deep, confident blue with real depth.",            "price": 0,   "price_verified": false },
+        { "id": "argon-blue",      "name": "Argon Blue Metallic",                  "note": "A brighter, energetic blue with a sporting edge.",   "price": 395, "price_verified": false },
+        { "id": "ruby-red",        "name": "Ruby Red Metallic Tinted Clearcoat",   "note": "A rich, jewel-like red under a tinted clearcoat.",   "price": 595, "price_verified": false },
+        { "id": "star-white",      "name": "Star White Metallic Tri-Coat",         "note": "A luminous pearl white with a soft, premium shimmer.", "price": 795, "price_verified": false }
       ],
       "wheels": [
-        { "id": "18-painted-aluminum", "size_inches": 18, "finish": "Painted Aluminum", "available_trims": ["lariat"], "note": "Clean, durable everyday face — comfort-leaning ride." },
-        { "id": "18-gloss-black",      "size_inches": 18, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Blacked-out 18s for a stealthier stance." },
-        { "id": "20-chrome-pvd",       "size_inches": 20, "finish": "Chrome-Like PVD",   "available_trims": ["lariat"], "note": "Bright PVD chrome — a polished, premium look." },
-        { "id": "20-gloss-black",      "size_inches": 20, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Larger 20s in gloss black — bold and planted." },
-        { "id": "22-gloss-black",      "size_inches": 22, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "The biggest, boldest look — dark and assertive." },
-        { "id": "22-chrome",           "size_inches": 22, "finish": "Chrome",            "available_trims": ["lariat"], "note": "22-inch chrome — maximum road presence." }
+        { "id": "18-painted-aluminum", "size_inches": 18, "finish": "Painted Aluminum", "available_trims": ["lariat"], "note": "Clean, durable everyday face — comfort-leaning ride.", "price": 0,    "price_verified": false },
+        { "id": "18-gloss-black",      "size_inches": 18, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Blacked-out 18s for a stealthier stance.",            "price": 0,    "price_verified": false },
+        { "id": "20-chrome-pvd",       "size_inches": 20, "finish": "Chrome-Like PVD",   "available_trims": ["lariat"], "note": "Bright PVD chrome — a polished, premium look.",        "price": 1595, "price_verified": false },
+        { "id": "20-gloss-black",      "size_inches": 20, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "Larger 20s in gloss black — bold and planted.",       "price": 1595, "price_verified": false },
+        { "id": "22-gloss-black",      "size_inches": 22, "finish": "Gloss Black",       "available_trims": ["lariat"], "note": "The biggest, boldest look — dark and assertive.",     "price": 3995, "price_verified": false },
+        { "id": "22-chrome",           "size_inches": 22, "finish": "Chrome",            "available_trims": ["lariat"], "note": "22-inch chrome — maximum road presence.",             "price": 3995, "price_verified": false }
       ],
       "interiors": [
-        { "id": "activex-slate",   "material": "ActiveX", "color": "Medium Dark Slate", "available_trims": ["lariat"], "note": "Hard-wearing ActiveX seating in a warm slate grey — easy-going and refined." },
-        { "id": "activex-black",   "material": "ActiveX", "color": "Black",             "available_trims": ["lariat"], "note": "Classic black ActiveX — clean, low-maintenance and timeless." },
-        { "id": "activex-truffle", "material": "ActiveX", "color": "Smoked Truffle",    "available_trims": ["lariat"], "note": "A rich brown ActiveX with an upscale, lived-in warmth." }
+        { "id": "activex-slate",   "material": "ActiveX", "color": "Medium Dark Slate", "available_trims": ["lariat"], "note": "Hard-wearing ActiveX seating in a warm slate grey — easy-going and refined.", "price": 0, "price_verified": false },
+        { "id": "activex-black",   "material": "ActiveX", "color": "Black",             "available_trims": ["lariat"], "note": "Classic black ActiveX — clean, low-maintenance and timeless.",             "price": 0, "price_verified": false },
+        { "id": "activex-truffle", "material": "ActiveX", "color": "Smoked Truffle",    "available_trims": ["lariat"], "note": "A rich brown ActiveX with an upscale, lived-in warmth.",                   "price": 0, "price_verified": false }
       ]
     }
   }

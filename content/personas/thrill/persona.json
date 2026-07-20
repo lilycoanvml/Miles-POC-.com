@@ -1,0 +1,13 @@
+{
+  "id": "thrill",
+  "label": "Thrill",
+  "rsfPrompt": "What makes it fun for you?",
+  "scoringWeights": {
+    "life_mode":          { "project_home": 0, "trails_camp": 1, "the_drive": 3 },
+    "daily_use":          { "work_haul": 0, "family": 0, "commute": 0, "play": 3 },
+    "powertrain_comfort": { "gas": 1, "hybrid": 0, "ev": 1 }
+  },
+  "priorityOptionCategories": ["performance", "presence", "sound"],
+  "orbSignal": { "hue": "#C21807", "motion": "pulse" },
+  "notes": "No native performance vehicles in the current trucks/vans lineup — Thrill logic ships now, vehicles (Raptor/Lobo/Mustang etc.) are a content backlog item. See docs/AUDIT.md decision #2."
+}

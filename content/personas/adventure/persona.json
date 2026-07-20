@@ -1,0 +1,12 @@
+{
+  "id": "adventure",
+  "label": "Adventure",
+  "rsfPrompt": "Where do you want to go?",
+  "scoringWeights": {
+    "life_mode":          { "project_home": 0, "trails_camp": 3, "the_drive": 1 },
+    "daily_use":          { "work_haul": 1, "family": 1, "commute": 0, "play": 2 },
+    "powertrain_comfort": { "gas": 1, "hybrid": 1, "ev": 0 }
+  },
+  "priorityOptionCategories": ["terrain", "accessories", "freedom"],
+  "orbSignal": { "hue": "#2E7D32", "motion": "drift" }
+}
