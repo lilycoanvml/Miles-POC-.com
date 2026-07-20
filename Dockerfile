@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Backend code + knowledge base (paths are resolved relative to /app by kb.py/agent.py)
 COPY app/ ./app/
-COPY car_configurations.json tools.json system_prompt.md ./
+COPY car_configurations.json tools.json system_prompt.md system_prompt_miles3.md ./
 # Miles 3.0 persona content (voice/scoring/lines) — read at runtime from Phase 3 onward.
 COPY content/ ./content/
 
