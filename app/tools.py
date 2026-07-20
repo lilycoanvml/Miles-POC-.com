@@ -111,6 +111,28 @@ def h_spin_lineup(state, mem, inp):
 
 def h_select_model(state, mem, inp):
     model_id = inp["model"]
+    if is_miles3():
+        # miles3: reveal any persona-matched Tier-1 vehicle, but deep-build on whatever has a
+        # Tier-2 tree (only the F-150 today — see docs/AUDIT.md decision #3).
+        lineup_ids = [v["id"] for v in kb.lineup()]
+        if model_id not in lineup_ids:
+            return _err(f"Unknown vehicle '{model_id}'. Options: {lineup_ids}")
+        state.revealed_model = model_id
+        build_id = model_id if kb.has_tier2(model_id) else LOCKED_MODEL
+        m = kb.model(build_id)
+        state.config = {"model": build_id}  # reset config on (re)select
+        state.config_finalized = False
+        return _ok({
+            "stub": "model_silhouette",
+            "revealed": model_id,
+            "build_model": build_id,
+            "build_deferred": build_id != model_id,  # true when the reveal has no Tier-2 tree yet
+            "model": {
+                "id": m["id"], "name": m["name"], "segment": m["segment"],
+                "powertrain": m["powertrain"], "features": m["features"],
+            },
+        })
+    # miles2: reveal is hard-locked to the F-150 Lariat.
     if model_id != LOCKED_MODEL:
         return _err(f"POC reveal is locked to the F-150 Lariat ('{LOCKED_MODEL}'). Reveal that model.")
     m = kb.model(model_id)

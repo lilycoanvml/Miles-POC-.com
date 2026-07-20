@@ -65,3 +65,19 @@ def score(profile: dict, registries: dict) -> dict:
 def is_confident(result: dict) -> bool:
     """True when the inference is strong enough to lock without a tie-breaker."""
     return bool(result.get("dominant")) and result.get("confidence", 0.0) >= CONFIDENCE_THRESHOLD
+
+
+def recommend(state) -> str | None:
+    """The Tier-1 vehicle to reveal: best persona match within budget.max.
+
+    Reads state.persona.dominant + state.budget.max and ranks the lineup (kb.lineup_by_persona).
+    Never returns an over-budget hero when an in-budget one exists. Returns None before the persona
+    locks. The deep-build target is resolved separately (only the F-150 has a Tier-2 tree today).
+    """
+    dominant = (getattr(state, "persona", {}) or {}).get("dominant")
+    if not dominant:
+        return None
+    from . import kb
+    max_price = (getattr(state, "budget", {}) or {}).get("max")
+    ranked = kb.lineup_by_persona(dominant, max_price)
+    return ranked[0]["id"] if ranked else None

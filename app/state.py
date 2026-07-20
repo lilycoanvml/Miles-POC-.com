@@ -51,6 +51,7 @@ class SessionState:
     budget: dict = field(default_factory=dict)           # {"min","max","monthly"}
     persona: dict = field(default_factory=dict)          # {"scores","dominant","confidence"}
     running_total: int = 0
+    revealed_model: str | None = None                    # persona-matched Tier-1 vehicle shown at reveal
 
     # ---- derived readiness ----
     @property
@@ -133,6 +134,14 @@ class SessionState:
             dominant = self.persona.get("dominant")
             if dominant:
                 lines.append(f"persona={dominant} confidence={self.persona.get('confidence')}")
+            # At the reveal, tell Miles which vehicle to reveal (persona-matched, in budget).
+            if self.budget_set and not self.config.get("model"):
+                from . import persona as persona_mod
+                rec = persona_mod.recommend(self)
+                if rec:
+                    lines.append(f"recommended={rec}")
+            if self.revealed_model:
+                lines.append(f"revealed={self.revealed_model}")
             if self.running_total:
                 lines.append(f"running_total={self.running_total}")
         if self.config:

@@ -94,7 +94,7 @@
 
     {
       "name": "select_model",
-      "description": "Reveal/select a specific Ford vehicle and show the full 3D model. In this POC the reveal is LOCKED to the F-150 Lariat regardless of profiling. Call in Phase 2 at the reveal moment, after profiling is complete. Call at most once per reveal.",
+      "description": "Reveal/select a Ford vehicle and move into the 3D build. miles2: the reveal is LOCKED to the F-150 Lariat. miles3: pass the vehicle from [STATE] recommended (the persona-matched pick in budget); the deep 3D build proceeds on whatever has a build tree (the F-150 today), so a non-F-150 reveal is framed then built on the F-150. Call once, at the reveal, after profiling (and budget in miles3).",
       "input_schema": {
         "type": "object",
         "properties": {
